@@ -70,11 +70,13 @@ impl SubprocessTransport {
             self.build_command(options, prompt)
         };
 
+        eprintln!("[DEBUG SDK] CLI args: {:?}", args);
+
         let mut cmd = Command::new(&self.cli_path);
         cmd.args(&args)
             .stdin(if self.streaming_mode { Stdio::piped() } else { Stdio::null() })
             .stdout(Stdio::piped())
-            .stderr(Stdio::null());
+            .stderr(Stdio::piped());
 
         // Set environment
         cmd.env("CLAUDE_CODE_ENTRYPOINT", "sdk-rust");
@@ -153,6 +155,13 @@ impl SubprocessTransport {
             args.push(mode.to_string());
         }
 
+        // Permission prompt tool (for SDK control protocol)
+        if let Some(tool) = &options.permission_prompt_tool_name {
+            eprintln!("[DEBUG] Setting permission_prompt_tool_name={}", tool);
+            args.push("--permission-prompt-tool".to_string());
+            args.push(tool.clone());
+        }
+
         // Model
         if let Some(model) = &options.model {
             args.push("--model".to_string());
@@ -198,6 +207,17 @@ impl SubprocessTransport {
     pub fn read_messages(&mut self) -> impl Stream<Item = Result<serde_json::Value>> + '_ {
         stream! {
             if let Some(child) = &mut self.child {
+                // Spawn stderr reader task
+                if let Some(stderr) = child.stderr.take() {
+                    tokio::spawn(async move {
+                        let reader = BufReader::new(stderr);
+                        let mut lines = reader.lines();
+                        while let Ok(Some(line)) = lines.next_line().await {
+                            eprintln!("[DEBUG CLI STDERR] {}", line);
+                        }
+                    });
+                }
+
                 if let Some(stdout) = child.stdout.take() {
                     let reader = BufReader::new(stdout);
                     let mut lines = reader.lines();
@@ -209,6 +229,7 @@ impl SubprocessTransport {
                             continue;
                         }
 
+                        eprintln!("[DEBUG SDK] Received line: {}", trimmed);
                         json_buffer.push_str(trimmed);
 
                         if json_buffer.len() > self.max_buffer_size {
@@ -220,6 +241,7 @@ impl SubprocessTransport {
                         // Try to parse JSON
                         match serde_json::from_str::<serde_json::Value>(&json_buffer) {
                             Ok(value) => {
+                                eprintln!("[DEBUG SDK] Parsed JSON message: {}", serde_json::to_string(&value).unwrap_or_default());
                                 json_buffer.clear();
                                 yield Ok(value);
                             }

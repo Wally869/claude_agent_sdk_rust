@@ -55,6 +55,17 @@ pub struct ControlResponseError {
     pub error: String,
 }
 
+/// Hook matcher configuration for initialize request.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HookMatcherConfig {
+    /// Tool name matcher pattern (e.g., "Bash", "Read|Write", "*").
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub matcher: Option<String>,
+    /// Hook callback IDs to invoke for this matcher.
+    pub hook_callback_ids: Vec<String>,
+}
+
 /// Control request types.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "subtype", rename_all = "snake_case")]

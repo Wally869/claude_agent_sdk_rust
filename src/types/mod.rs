@@ -12,7 +12,7 @@ pub mod permissions;
 // Re-export commonly used types
 pub use agents::{AgentDefinition, SettingSource};
 pub use content::{ContentBlock, TextBlock, ThinkingBlock, ToolResultBlock, ToolUseBlock};
-pub use control::{ControlRequest, SDKControlRequest, SDKControlResponse};
+pub use control::{ControlRequest, HookMatcherConfig, SDKControlRequest, SDKControlResponse};
 pub use hooks::{
     AsyncHookOutput, HookContext, HookEvent, HookInput, HookMatcher, HookOutput,
     PreToolUseHookInput, PostToolUseHookInput, SyncHookOutput,

@@ -6,7 +6,7 @@ use crate::callbacks::{HookCallback, PermissionCallback};
 use crate::error::{ClaudeSDKError, Result};
 use crate::parser;
 use crate::query::{CanUseToolFn, HookCallbackFn, Query, QueryHandle};
-use crate::types::{HookContext, HookEvent, HookInput, ToolPermissionContext};
+use crate::types::{HookContext, HookEvent, HookInput, HookMatcherConfig, ToolPermissionContext};
 use crate::transport::{check_claude_version, find_claude_cli, subprocess::SubprocessTransport};
 use crate::types::{ClaudeAgentOptions, Message, PermissionMode};
 
@@ -14,6 +14,14 @@ use futures::Stream;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
+
+/// Hook registration metadata.
+#[derive(Debug, Clone)]
+struct HookRegistration {
+    event: HookEvent,
+    matcher: Option<String>,
+    callback_id: String,
+}
 
 /// Interactive client for bidirectional conversations with Claude.
 ///
@@ -59,6 +67,9 @@ pub struct ClaudeSDKClient {
     /// Hook callbacks registry (shared).
     hook_callbacks: Arc<std::sync::Mutex<HashMap<String, Arc<HookCallbackFn>>>>,
 
+    /// Hook registrations metadata (to build hooks config for initialize).
+    hook_registrations: Vec<HookRegistration>,
+
     /// Permission callback (if set, shared).
     permission_callback: Arc<std::sync::Mutex<Option<Arc<CanUseToolFn>>>>,
 
@@ -88,6 +99,7 @@ impl ClaudeSDKClient {
             options,
             query_handle: None,
             hook_callbacks: Arc::new(std::sync::Mutex::new(HashMap::new())),
+            hook_registrations: Vec::new(),
             permission_callback: Arc::new(std::sync::Mutex::new(None)),
             next_callback_id: 0,
         }
@@ -127,8 +139,8 @@ impl ClaudeSDKClient {
     /// ```
     pub fn register_hook<H>(
         &mut self,
-        _event: HookEvent,
-        _matcher: Option<&str>,
+        event: HookEvent,
+        matcher: Option<&str>,
         callback: H,
     ) -> String
     where
@@ -149,6 +161,13 @@ impl ClaudeSDKClient {
         );
 
         self.hook_callbacks.lock().unwrap().insert(callback_id.clone(), Arc::new(callback_fn));
+
+        // Store registration metadata
+        self.hook_registrations.push(HookRegistration {
+            event,
+            matcher: matcher.map(|s| s.to_string()),
+            callback_id: callback_id.clone(),
+        });
 
         callback_id
     }
@@ -201,6 +220,43 @@ impl ClaudeSDKClient {
         *self.permission_callback.lock().unwrap() = Some(Arc::new(callback_fn));
     }
 
+    /// Build hooks configuration for initialize request.
+    ///
+    /// Groups hook registrations by event and creates HookMatcherConfig entries.
+    fn build_hooks_config(&self) -> Option<HashMap<String, Vec<HookMatcherConfig>>> {
+        if self.hook_registrations.is_empty() {
+            return None;
+        }
+
+        let mut hooks_by_event: HashMap<HookEvent, HashMap<Option<String>, Vec<String>>> = HashMap::new();
+
+        // Group callbacks by event and matcher
+        for reg in &self.hook_registrations {
+            let matchers = hooks_by_event.entry(reg.event).or_insert_with(HashMap::new);
+            let callback_ids = matchers.entry(reg.matcher.clone()).or_insert_with(Vec::new);
+            callback_ids.push(reg.callback_id.clone());
+        }
+
+        // Convert to HookMatcherConfig format
+        let mut hooks_config: HashMap<String, Vec<HookMatcherConfig>> = HashMap::new();
+
+        for (event, matchers) in hooks_by_event {
+            let event_key = format!("{:?}", event); // "PreToolUse", "PostToolUse", etc.
+
+            let matcher_configs: Vec<HookMatcherConfig> = matchers
+                .into_iter()
+                .map(|(matcher, callback_ids)| HookMatcherConfig {
+                    matcher,
+                    hook_callback_ids: callback_ids,
+                })
+                .collect();
+
+            hooks_config.insert(event_key, matcher_configs);
+        }
+
+        Some(hooks_config)
+    }
+
     /// Connect to Claude Code CLI and establish streaming session.
     ///
     /// Spawns the CLI process in streaming mode, creates Query layer,
@@ -242,11 +298,20 @@ impl ClaudeSDKClient {
             let _ = check_claude_version(&cli_path).await;
         }
 
+        // Auto-set permission_prompt_tool_name if permission callback is registered
+        let mut options_for_transport = self.options.clone();
+        {
+            let callback = self.permission_callback.lock().unwrap();
+            if callback.is_some() && options_for_transport.permission_prompt_tool_name.is_none() {
+                options_for_transport.permission_prompt_tool_name = Some("stdio".to_string());
+            }
+        }
+
         // Create transport in streaming mode
-        let mut transport = SubprocessTransport::new_streaming(cli_path, &self.options);
+        let mut transport = SubprocessTransport::new_streaming(cli_path, &options_for_transport);
 
         // Spawn process (empty prompt for streaming mode)
-        transport.spawn(&self.options, "").await?;
+        transport.spawn(&options_for_transport, "").await?;
 
         // Extract callbacks from Arc<Mutex<>>
         let hook_callbacks = self.hook_callbacks.lock().unwrap().clone();
@@ -260,8 +325,12 @@ impl ClaudeSDKClient {
         );
         let query_handle = query.start();
 
-        // Initialize streaming mode
-        query_handle.initialize(None).await?;
+        // Build hooks configuration
+        let hooks_config = self.build_hooks_config();
+        let hooks_value = hooks_config.map(|config| serde_json::to_value(config).unwrap());
+
+        // Initialize streaming mode with hooks config
+        query_handle.initialize(hooks_value).await?;
 
         // Send initial prompt if provided
         if let Some(p) = prompt {
