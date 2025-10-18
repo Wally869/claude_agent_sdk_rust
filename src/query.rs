@@ -346,12 +346,10 @@ impl Query {
         let json_result = match result {
             PermissionResult::Allow(allow) => {
                 let mut obj = json!({
-                    "behavior": "allow"
+                    "behavior": "allow",
+                    // CLI requires updatedInput to always be present, even if unchanged
+                    "updatedInput": allow.updated_input.unwrap_or(input)
                 });
-
-                if let Some(updated_input) = allow.updated_input {
-                    obj["updatedInput"] = updated_input;
-                }
 
                 if let Some(updated_permissions) = allow.updated_permissions {
                     obj["updatedPermissions"] = serde_json::to_value(updated_permissions)?;
