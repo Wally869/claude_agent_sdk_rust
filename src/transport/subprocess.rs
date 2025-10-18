@@ -70,8 +70,6 @@ impl SubprocessTransport {
             self.build_command(options, prompt)
         };
 
-        eprintln!("[DEBUG SDK] CLI args: {:?}", args);
-
         let mut cmd = Command::new(&self.cli_path);
         cmd.args(&args)
             .stdin(if self.streaming_mode { Stdio::piped() } else { Stdio::null() })
@@ -157,7 +155,6 @@ impl SubprocessTransport {
 
         // Permission prompt tool (for SDK control protocol)
         if let Some(tool) = &options.permission_prompt_tool_name {
-            eprintln!("[DEBUG] Setting permission_prompt_tool_name={}", tool);
             args.push("--permission-prompt-tool".to_string());
             args.push(tool.clone());
         }
@@ -212,8 +209,8 @@ impl SubprocessTransport {
                     tokio::spawn(async move {
                         let reader = BufReader::new(stderr);
                         let mut lines = reader.lines();
-                        while let Ok(Some(line)) = lines.next_line().await {
-                            eprintln!("[DEBUG CLI STDERR] {}", line);
+                        while let Ok(Some(_line)) = lines.next_line().await {
+                            // Ignore stderr output
                         }
                     });
                 }
@@ -228,8 +225,6 @@ impl SubprocessTransport {
                         if trimmed.is_empty() {
                             continue;
                         }
-
-                        eprintln!("[DEBUG SDK] Received line: {}", trimmed);
                         json_buffer.push_str(trimmed);
 
                         if json_buffer.len() > self.max_buffer_size {
@@ -241,7 +236,6 @@ impl SubprocessTransport {
                         // Try to parse JSON
                         match serde_json::from_str::<serde_json::Value>(&json_buffer) {
                             Ok(value) => {
-                                eprintln!("[DEBUG SDK] Parsed JSON message: {}", serde_json::to_string(&value).unwrap_or_default());
                                 json_buffer.clear();
                                 yield Ok(value);
                             }

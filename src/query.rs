@@ -138,7 +138,6 @@ impl Query {
                                 }
                             }
                             Some("control_request") => {
-                                eprintln!("[DEBUG SDK] Received control_request!");
                                 // Handle control request (from CLI to SDK)
                                 if let Err(e) = Self::handle_control_request_static(
                                     msg,
@@ -223,8 +222,6 @@ impl Query {
         let subtype = request["subtype"]
             .as_str()
             .ok_or_else(|| ClaudeSDKError::message_parse("Missing subtype in control_request"))?;
-
-        eprintln!("[DEBUG SDK] Control request: subtype={}", subtype);
 
         // Execute appropriate handler
         let response_result: Result<Value> = match subtype {
@@ -498,9 +495,7 @@ impl QueryHandle {
             request["hooks"] = hooks_val;
         }
 
-        eprintln!("[DEBUG SDK] Sending initialize request: {}", serde_json::to_string(&request).unwrap_or_default());
         let response = self.send_control_request(request).await?;
-        eprintln!("[DEBUG SDK] Received initialize response: {}", serde_json::to_string(&response).unwrap_or_default());
 
         // Store server info
         {
