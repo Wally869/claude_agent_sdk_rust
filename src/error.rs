@@ -80,6 +80,18 @@ pub enum ClaudeSDKError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
+    /// Authentication error (OAuth/API key issues).
+    #[error("Authentication error: {0}")]
+    AuthenticationError(String),
+
+    /// Network error occurred during API request.
+    #[error("Network error: {0}")]
+    NetworkError(String),
+
+    /// Failed to parse data (non-JSON parsing).
+    #[error("Parse error: {0}")]
+    ParseError(String),
+
     /// Generic error with a custom message.
     #[error("{0}")]
     Other(String),

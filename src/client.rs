@@ -665,4 +665,115 @@ impl ClaudeSDKClient {
     pub fn is_connected(&self) -> bool {
         self.query_handle.is_some()
     }
+
+    /// Get current usage data for Claude Code (OAuth/Max Plan users only).
+    ///
+    /// This method retrieves usage statistics including:
+    /// - 5-hour rolling window usage
+    /// - 7-day (weekly) usage across all models
+    /// - 7-day OAuth apps usage
+    /// - 7-day Opus-specific usage
+    ///
+    /// Each usage limit includes:
+    /// - `utilization`: Percentage used (0-100)
+    /// - `resets_at`: ISO 8601 timestamp when limit resets
+    ///
+    /// # Requirements
+    ///
+    /// - Must have OAuth credentials in `~/.claude/.credentials.json`
+    /// - Only works with Max Plan subscriptions (not API keys)
+    /// - Requires valid, non-expired access token
+    ///
+    /// # Errors
+    ///
+    /// Returns error if:
+    /// - Credentials file not found or invalid
+    /// - Access token expired (use Claude CLI to refresh)
+    /// - Network request fails
+    /// - API returns error (401 for invalid token)
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions};
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
+    ///
+    /// let usage = client.get_usage().await?;
+    ///
+    /// println!("5-hour usage: {}%", usage.five_hour.utilization);
+    /// println!("Weekly usage: {}%", usage.seven_day.utilization);
+    ///
+    /// if usage.is_approaching_limit() {
+    ///     println!("Warning: Approaching usage limit!");
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn get_usage(&self) -> Result<crate::types::UsageData> {
+        use crate::types::UsageData;
+
+        // Read OAuth credentials
+        let credentials = Self::read_oauth_credentials()?;
+
+        // Extract access token
+        let access_token = credentials
+            .get("claudeAiOauth")
+            .and_then(|oauth| oauth.get("accessToken"))
+            .and_then(|token| token.as_str())
+            .ok_or_else(|| ClaudeSDKError::AuthenticationError(
+                "No access token found in credentials file".to_string()
+            ))?;
+
+        // Make request to usage endpoint
+        let client = reqwest::Client::new();
+        let response = client
+            .get("https://api.anthropic.com/api/oauth/usage")
+            .header("Authorization", format!("Bearer {}", access_token))
+            .header("anthropic-beta", "oauth-2025-04-20")
+            .send()
+            .await
+            .map_err(|e| ClaudeSDKError::NetworkError(e.to_string()))?;
+
+        // Check for errors
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(ClaudeSDKError::NetworkError(
+                format!("Usage API request failed ({}): {}", status, error_text)
+            ));
+        }
+
+        // Parse response
+        let usage: UsageData = response
+            .json()
+            .await
+            .map_err(|e| ClaudeSDKError::ParseError(format!("Failed to parse usage response: {}", e)))?;
+
+        Ok(usage)
+    }
+
+    /// Read OAuth credentials from ~/.claude/.credentials.json
+    fn read_oauth_credentials() -> Result<serde_json::Value> {
+        let home_dir = std::env::var("HOME")
+            .or_else(|_| std::env::var("USERPROFILE"))
+            .map_err(|_| ClaudeSDKError::AuthenticationError(
+                "Cannot determine home directory".to_string()
+            ))?;
+
+        let credentials_path = std::path::PathBuf::from(home_dir)
+            .join(".claude")
+            .join(".credentials.json");
+
+        let contents = std::fs::read_to_string(&credentials_path)
+            .map_err(|e| ClaudeSDKError::AuthenticationError(
+                format!("Failed to read credentials file at {:?}: {}", credentials_path, e)
+            ))?;
+
+        serde_json::from_str(&contents)
+            .map_err(|e| ClaudeSDKError::ParseError(
+                format!("Invalid credentials file format: {}", e)
+            ))
+    }
 }

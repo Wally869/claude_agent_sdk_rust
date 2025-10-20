@@ -12,6 +12,7 @@ The Claude Agent SDK enables you to build powerful AI agents using Claude Code's
 - Fine-grained permission controls
 - Hook system for deterministic behavior
 - Interactive bidirectional conversations
+- Usage tracking and quota monitoring (Max Plan)
 
 ## Prerequisites
 
@@ -372,12 +373,14 @@ See the `examples/` directory for complete working examples:
 - **`with_options.rs`** - Configuration examples
 - **`interactive.rs`** - Bidirectional conversation
 - **`with_callbacks.rs`** - Hooks and permission callbacks
+- **`usage_tracking.rs`** - Monitor Claude Code usage and quotas (Max Plan)
 
 Run examples:
 ```bash
 cargo run --example basic
 cargo run --example interactive
 cargo run --example with_callbacks
+cargo run --example usage_tracking
 ```
 
 ## Documentation

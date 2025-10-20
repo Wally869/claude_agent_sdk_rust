@@ -8,6 +8,7 @@ pub mod mcp;
 pub mod messages;
 pub mod options;
 pub mod permissions;
+pub mod usage;
 
 // Re-export commonly used types
 pub use agents::{AgentDefinition, SettingSource};
@@ -28,3 +29,4 @@ pub use permissions::{
     PermissionRuleValue, PermissionUpdate, PermissionUpdateDestination, PermissionUpdateType,
     ToolPermissionContext,
 };
+pub use usage::{UsageData, UsageLimit};

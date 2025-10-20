@@ -2,4 +2,5 @@
 
 /.claude
 /claude-agent-sdk-python
+/anthropic-sdk-python
 /temp
