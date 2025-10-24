@@ -2,17 +2,17 @@
 name = "claude-agent-sdk"
 version = "1.0.0-rc.1"
 edition = "2021"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["William <wally869@protonmail.com>"]
 license = "MIT"
 description = "Rust SDK for Claude Agent - Build production-ready AI agents with Claude"
-repository = "https://github.com/yourusername/claude-agent-sdk-rust"
+repository = "https://github.com/Wally869/claude-agent-sdk-rust"
 keywords = ["claude", "ai", "agent", "anthropic", "llm"]
 categories = ["api-bindings", "development-tools"]
 readme = "README.md"
 
 [dependencies]
 # Async runtime and process management
-tokio = { version = "1.40", features = ["full"] }
+tokio = { version = "1.40", features = ["io-util", "macros", "process", "rt-multi-thread", "sync", "time"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
