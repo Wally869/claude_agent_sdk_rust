@@ -181,6 +181,25 @@ impl SubprocessTransport {
             args.push("--setting-sources".to_string());
             args.push(sources_str);
         }
+
+        // Session management
+        if options.continue_conversation {
+            args.push("--continue".to_string());
+        }
+
+        if let Some(resume_id) = &options.resume {
+            args.push("--resume".to_string());
+            args.push(resume_id.clone());
+        }
+
+        if options.fork_session {
+            args.push("--fork-session".to_string());
+        }
+
+        if let Some(session_id) = &options.session_id {
+            args.push("--session-id".to_string());
+            args.push(session_id.clone());
+        }
     }
 
     /// Write a message to stdin (for streaming mode).

@@ -67,6 +67,9 @@ pub struct ClaudeAgentOptions {
     /// Session ID to resume.
     pub resume: Option<String>,
 
+    /// Force a specific session ID for a new conversation (must be valid UUID).
+    pub session_id: Option<String>,
+
     /// Include partial streaming messages.
     #[builder(default)]
     pub include_partial_messages: bool,

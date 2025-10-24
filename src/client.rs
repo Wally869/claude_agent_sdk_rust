@@ -666,6 +666,46 @@ impl ClaudeSDKClient {
         self.query_handle.is_some()
     }
 
+    /// Get the current session ID.
+    ///
+    /// Returns the session ID once it has been captured from messages.
+    /// The session ID is extracted automatically from the first message
+    /// that contains it (typically ResultMessage or StreamEvent).
+    ///
+    /// Returns None if:
+    /// - Not connected yet
+    /// - No messages have been received
+    /// - Session hasn't been established
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions};
+    /// # use futures::StreamExt;
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let mut client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
+    /// client.connect(Some("Hello".to_string())).await?;
+    ///
+    /// // Process messages
+    /// let mut messages = client.receive_messages()?;
+    /// while let Some(msg) = messages.next().await {
+    ///     let _ = msg?;
+    ///     // Session ID gets captured automatically
+    ///     if let Some(session_id) = client.get_session_id() {
+    ///         println!("Session: {}", session_id);
+    ///         break;
+    ///     }
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_session_id(&self) -> Option<String> {
+        self.query_handle
+            .as_ref()
+            .and_then(|handle| handle.get_session_id())
+    }
+
     /// Get current usage data for Claude Code (OAuth/Max Plan users only).
     ///
     /// This method retrieves usage statistics including:

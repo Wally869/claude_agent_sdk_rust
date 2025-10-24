@@ -110,12 +110,14 @@ impl Query {
         let sdk_messages_rx = self.sdk_messages_rx;
         let server_info = self.server_info;
         let request_counter = self.request_counter;
+        let current_session_id = Arc::new(std::sync::OnceLock::new());
 
         // Clone Arc values for use in the async block
         let pending_responses_task = pending_responses.clone();
         let hook_callbacks_task = hook_callbacks.clone();
         let can_use_tool_callback_task = can_use_tool_callback.clone();
         let stdin_task = stdin.clone();
+        let current_session_id_task = current_session_id.clone();
 
         // Spawn background task
         tokio::spawn(async move {
@@ -149,6 +151,12 @@ impl Query {
                                 }
                             }
                             _ => {
+                                // Extract session ID if present (from result, stream_event, or assistant messages)
+                                if let Some(session_id) = msg.get("session_id").and_then(|v| v.as_str()) {
+                                    // Try to set session ID (only succeeds once, subsequent calls ignored)
+                                    let _ = current_session_id_task.set(session_id.to_string());
+                                }
+
                                 // Regular SDK message - send to stream
                                 if sdk_messages_tx.send(msg).await.is_err() {
                                     // Receiver dropped, exit loop
@@ -176,6 +184,7 @@ impl Query {
             sdk_messages_rx,
             server_info,
             stdin,
+            current_session_id,
         }
     }
 
@@ -422,6 +431,9 @@ pub struct QueryHandle {
 
     /// Stdin for writing control requests.
     stdin: Arc<Mutex<Option<ChildStdin>>>,
+
+    /// Current session ID (captured from messages).
+    current_session_id: Arc<std::sync::OnceLock<String>>,
 }
 
 impl QueryHandle {
@@ -442,6 +454,14 @@ impl QueryHandle {
     pub async fn get_server_info(&self) -> Option<Value> {
         let server_info = self.server_info.lock().await;
         server_info.clone()
+    }
+
+    /// Get the current session ID.
+    ///
+    /// Returns the session ID once it has been captured from messages.
+    /// Returns None if no session has been established yet.
+    pub fn get_session_id(&self) -> Option<String> {
+        self.current_session_id.get().cloned()
     }
 
     /// Send a control request and wait for response.

@@ -365,6 +365,87 @@ match query("test", None).await {
 }
 ```
 
+## Session Management
+
+The SDK provides full support for managing conversation sessions, allowing you to:
+- Capture session IDs from conversations
+- Resume previous conversations with full context
+- Continue from the most recent conversation
+
+### Capturing Session IDs
+
+Session IDs are automatically captured from messages:
+
+```rust
+use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions, Message};
+use futures::StreamExt;
+
+let mut client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
+client.connect(Some("Hello!".to_string())).await?;
+
+// Process messages
+let mut messages = client.receive_messages()?;
+while let Some(msg) = messages.next().await {
+    match msg? {
+        Message::Result(result) => {
+            // Session ID is available from result message
+            let session_id = result.session_id;
+            println!("Session: {}", session_id);
+        }
+        _ => {}
+    }
+}
+
+// Or get it directly from the client
+if let Some(session_id) = client.get_session_id() {
+    println!("Current session: {}", session_id);
+}
+```
+
+### Resuming Sessions
+
+Resume a specific conversation by session ID:
+
+```rust
+let options = ClaudeAgentOptions::builder()
+    .resume("session-id-here".to_string())
+    .build();
+
+let mut client = ClaudeSDKClient::new(options);
+client.connect(Some("Continue our conversation...".to_string())).await?;
+```
+
+### Continuing Most Recent
+
+Continue the most recent conversation:
+
+```rust
+let options = ClaudeAgentOptions::builder()
+    .continue_conversation(true)
+    .build();
+
+let mut client = ClaudeSDKClient::new(options);
+client.connect(Some("As we were discussing...".to_string())).await?;
+```
+
+### Forking Sessions
+
+Create a new session ID when resuming (for experimentation):
+
+```rust
+let options = ClaudeAgentOptions::builder()
+    .resume("original-session-id".to_string())
+    .fork_session(true)  // Creates new ID instead of reusing
+    .build();
+```
+
+Sessions are stored in `~/.claude/projects/<project>/<session-id>.jsonl` and preserve full conversation context including:
+- All messages
+- Tool usage history
+- Context and state
+
+See `examples/session_resume.rs` for a complete working example.
+
 ## Examples
 
 See the `examples/` directory for complete working examples:
@@ -373,6 +454,7 @@ See the `examples/` directory for complete working examples:
 - **`with_options.rs`** - Configuration examples
 - **`interactive.rs`** - Bidirectional conversation
 - **`with_callbacks.rs`** - Hooks and permission callbacks
+- **`session_resume.rs`** - Session management and resuming conversations
 - **`usage_tracking.rs`** - Monitor Claude Code usage and quotas (Max Plan)
 
 Run examples:
@@ -380,6 +462,7 @@ Run examples:
 cargo run --example basic
 cargo run --example interactive
 cargo run --example with_callbacks
+cargo run --example session_resume
 cargo run --example usage_tracking
 ```
 
