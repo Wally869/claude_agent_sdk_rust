@@ -839,7 +839,7 @@ claude --version
 
 - [README.md](../README.md) - Installation and setup
 - [examples/](../examples/) - Complete working examples
-- [Rust API Documentation](https://docs.rs/claude-agent-sdk) - Full API reference (once published)
+- [Rust API Documentation](https://docs.rs/claude-agent-sdk-rust) - Full API reference
 - [Claude Code Documentation](https://code.claude.com/docs) - CLI documentation
 
 ## Support

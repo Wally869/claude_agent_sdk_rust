@@ -1,5 +1,8 @@
 # Claude Agent SDK for Rust
 
+[![Crates.io](https://img.shields.io/crates/v/claude-agent-sdk-rust)](https://crates.io/crates/claude-agent-sdk-rust)
+[![docs.rs](https://img.shields.io/docsrs/claude-agent-sdk-rust)](https://docs.rs/claude-agent-sdk-rust)
+
 Rust SDK for building production-ready AI agents with Claude. Replicate the full feature set of the Python Claude Agent SDK with idiomatic Rust patterns.
 
 ## Overview
@@ -574,7 +577,9 @@ See [docs/API_GUIDE.md](docs/API_GUIDE.md) for comprehensive documentation.
 
 ### Rust API Documentation
 
-Generate and view full API documentation:
+Published docs: [docs.rs/claude-agent-sdk-rust](https://docs.rs/claude-agent-sdk-rust)
+
+Or generate locally:
 
 ```bash
 cargo doc --open
