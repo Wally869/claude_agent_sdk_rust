@@ -20,6 +20,8 @@ The Claude Agent SDK enables you to build powerful AI agents using Claude Code's
 
 > **`max_budget_usd` is a soft cap.** The budget limit is checked between turns, not mid-generation. The current turn will always complete before the budget is evaluated, so actual spend may slightly exceed the configured limit.
 
+> **No nested Claude Code instances.** As of [CLI v2.1.41](https://code.claude.com/docs/en/changelog#2141), Claude Code prevents spawning nested instances of itself. The CLI sets `CLAUDECODE=1` in the environment; any child process that tries to start another Claude Code instance will detect this and refuse to launch. This means you cannot test SDK examples from within a Claude Code session (e.g. from Claude Code's Bash tool). Run them from a regular terminal instead. If you need to bypass this, unset the `CLAUDECODE` env var before spawning — but beware of recursive agent loops and contention issues on shared resources (files, sessions, API quota).
+
 ## Prerequisites
 
 - **Rust**: 1.85 or higher (edition 2024)
