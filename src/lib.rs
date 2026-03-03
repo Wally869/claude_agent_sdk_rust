@@ -10,7 +10,8 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let mut messages = query("What is 2 + 2?", None).await?;
+//!     let stream = query("What is 2 + 2?", None).await?;
+//!     let mut messages = Box::pin(stream);
 //!
 //!     while let Some(msg) = messages.next().await {
 //!         match msg? {
@@ -41,19 +42,25 @@ pub use callbacks::{HookCallback, PermissionCallback};
 pub use client::ClaudeSDKClient;
 pub use error::{ClaudeSDKError, Result};
 pub use types::{
-    AgentDefinition, AssistantMessage, ClaudeAgentOptions, ContentBlock, HookContext, HookEvent,
-    HookInput, HookOutput, Message, MessageContent, PermissionMode, PermissionResult,
-    ResultMessage, SettingSource, SystemPrompt, SystemPromptPreset, TextBlock, ToolPermissionContext,
-    ToolUseBlock, UserMessage,
+    AgentDefinition, AssistantMessage, ClaudeAgentOptions, ContentBlock, Effort, HookContext,
+    HookEvent, HookInput, HookOutput, Message, MessageContent, PermissionMode, PermissionResult,
+    ResultMessage, SandboxSettings, SdkPluginConfig, SettingSource, SystemPrompt,
+    SystemPromptPreset, TextBlock, ThinkingConfig, ToolPermissionContext, ToolUseBlock,
+    ToolsOption, UserMessage,
 };
 
 use futures::Stream;
-use transport::{find_claude_cli, check_claude_version, subprocess::SubprocessTransport};
+use query::Query;
+use transport::{check_claude_version, find_claude_cli, subprocess::SubprocessTransport};
 
 /// Query Claude with a simple prompt.
 ///
 /// This is the simplest way to interact with Claude. It creates a one-shot
 /// query and returns a stream of messages.
+///
+/// Internally uses streaming mode (matching Python/TypeScript SDK behavior)
+/// to send the prompt via stdin after initialization. This allows agents
+/// and large configs to be sent via the initialize request.
 ///
 /// # Arguments
 ///
@@ -72,7 +79,8 @@ use transport::{find_claude_cli, check_claude_version, subprocess::SubprocessTra
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-///     let mut messages = query("Hello, Claude!", None).await?;
+///     let stream = query("Hello, Claude!", None).await?;
+///     let mut messages = Box::pin(stream);
 ///
 ///     while let Some(msg) = messages.next().await {
 ///         println!("{:?}", msg?);
@@ -96,23 +104,39 @@ pub async fn query(
         let _ = check_claude_version(&cli_path).await;
     }
 
-    // Create transport
-    let mut transport = SubprocessTransport::new(cli_path, &options);
+    // Always use streaming mode internally (matching Python/TypeScript SDK)
+    let mut transport = SubprocessTransport::new_streaming(cli_path, &options);
 
-    // Spawn process
-    transport.spawn(&options, &prompt_str).await?;
+    // Spawn process (empty prompt for streaming mode)
+    transport.spawn(&options, "").await?;
+
+    // Create Query, start it, initialize
+    let query_obj = Query::new(transport);
+    let query_handle = query_obj.start();
+
+    // Initialize streaming mode
+    query_handle.initialize(None).await?;
+
+    // Send user message via stdin after initialize, then close stdin
+    // to signal no more input (matching Python SDK's end_input() call)
+    query_handle.send_user_message(&prompt_str).await?;
+    query_handle.close_stdin().await;
 
     // Return stream of parsed messages
     let message_stream = async_stream::stream! {
         use futures::stream::StreamExt as _;
 
-        let mut stream = Box::pin(transport.read_messages());
+        let mut stream = Box::pin(query_handle.read_messages());
 
         while let Some(result) = stream.next().await {
             match result {
                 Ok(value) => {
                     match parser::parse_message(value) {
                         Ok(message) => yield Ok(message),
+                        Err(ClaudeSDKError::UnknownMessageType(_)) => {
+                            // Skip unknown message types (forward-compatible)
+                            continue;
+                        }
                         Err(e) => yield Err(e),
                     }
                 }

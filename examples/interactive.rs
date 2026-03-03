@@ -1,6 +1,6 @@
 //! Interactive example demonstrating ClaudeSDKClient for multi-turn conversations.
 
-use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions, Message, Result};
+use claude_agent_sdk::{ClaudeAgentOptions, ClaudeSDKClient, Message, Result};
 use futures::StreamExt;
 
 #[tokio::main]
@@ -17,13 +17,18 @@ async fn main() -> Result<()> {
 
     // Get server info
     if let Some(info) = client.get_server_info().await? {
-        println!("Server info: {:?}\n", info);
+        if let Some(style) = info.get("output_style").and_then(|v| v.as_str()) {
+            println!("Output style: {}", style);
+        }
+        println!("Server initialized.\n");
     }
 
     // First query
     {
         println!("Sending first query: 'What is 2 + 2?'");
-        client.query("What is 2 + 2? Please explain briefly.").await?;
+        client
+            .query("What is 2 + 2? Please explain briefly.")
+            .await?;
 
         println!("\n--- Response 1 ---");
         let response1 = client.receive_response()?;

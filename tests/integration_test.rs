@@ -6,12 +6,15 @@
 //!
 //! Run with: cargo test --test integration_test -- --ignored
 
-use claude_agent_sdk::{
-    callbacks::{hooks, permissions, HookCallback, PermissionCallback},
-    query, ClaudeAgentOptions, ClaudeSDKClient, Message, PermissionMode,
-    types::{HookContext, HookEvent, HookInput, HookOutput, PermissionResult, ToolPermissionContext},
-};
 use async_trait::async_trait;
+use claude_agent_sdk::{
+    ClaudeAgentOptions, ClaudeSDKClient, Message, PermissionMode,
+    callbacks::{HookCallback, PermissionCallback, hooks, permissions},
+    query,
+    types::{
+        HookContext, HookEvent, HookInput, HookOutput, PermissionResult, ToolPermissionContext,
+    },
+};
 use futures::StreamExt;
 use serde_json::Value;
 use std::sync::{Arc, Mutex};
@@ -19,7 +22,7 @@ use std::sync::{Arc, Mutex};
 /// Helper to check if CLI is available
 fn check_cli_available() -> bool {
     //std::env::var("ANTHROPIC_API_KEY").is_ok()
-    return true;
+    true
 }
 
 #[tokio::test]
@@ -160,7 +163,10 @@ async fn test_multiple_queries() {
     client.connect(None).await.expect("Connection failed");
 
     // First query
-    client.query("What is 1 + 1?").await.expect("Query 1 failed");
+    client
+        .query("What is 1 + 1?")
+        .await
+        .expect("Query 1 failed");
     let messages = client.receive_response().expect("Stream 1 failed");
     let mut messages = Box::pin(messages);
 
@@ -172,7 +178,10 @@ async fn test_multiple_queries() {
     drop(messages);
 
     // Second query
-    client.query("What is 2 + 2?").await.expect("Query 2 failed");
+    client
+        .query("What is 2 + 2?")
+        .await
+        .expect("Query 2 failed");
     let messages = client.receive_response().expect("Stream 2 failed");
     let mut messages = Box::pin(messages);
 
@@ -316,10 +325,7 @@ async fn test_permission_mode_bypass() {
     let mut client = ClaudeSDKClient::new(options);
     client.connect(None).await.expect("Connection failed");
 
-    client
-        .query("What is 2 + 2?")
-        .await
-        .expect("Query failed");
+    client.query("What is 2 + 2?").await.expect("Query failed");
 
     let messages = client.receive_response().expect("Stream failed");
     let mut messages = Box::pin(messages);
@@ -372,9 +378,7 @@ async fn test_max_turns_limit() {
         return;
     }
 
-    let options = ClaudeAgentOptions::builder()
-        .max_turns(1)
-        .build();
+    let options = ClaudeAgentOptions::builder().max_turns(1).build();
 
     let messages = query("What is Rust?", Some(options))
         .await
@@ -428,7 +432,7 @@ async fn test_system_prompt() {
 
     let options = ClaudeAgentOptions::builder()
         .system_prompt(SystemPrompt::Text(
-            "You are a helpful assistant that always responds in exactly 3 words.".to_string()
+            "You are a helpful assistant that always responds in exactly 3 words.".to_string(),
         ))
         .build();
 
@@ -445,7 +449,10 @@ async fn test_system_prompt() {
         }
     }
 
-    assert!(got_response, "Should get response with custom system prompt");
+    assert!(
+        got_response,
+        "Should get response with custom system prompt"
+    );
 }
 
 #[tokio::test]
@@ -482,10 +489,7 @@ async fn test_interrupt() {
     client.connect(None).await.expect("Connection failed");
 
     // Start a query
-    client
-        .query("Count to 100")
-        .await
-        .expect("Query failed");
+    client.query("Count to 100").await.expect("Query failed");
 
     // Immediately interrupt
     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;

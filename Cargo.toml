@@ -1,7 +1,7 @@
 [package]
 name = "claude-agent-sdk"
-version = "1.0.0-rc.1"
-edition = "2021"
+version = "1.0.0"
+edition = "2024"
 authors = ["William <wally869@protonmail.com>"]
 license = "MIT"
 description = "Rust SDK for Claude Agent - Build production-ready AI agents with Claude"

@@ -22,7 +22,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
 
     client.connect(None).await?;
-    client.query("Remember this: my favorite color is blue.").await?;
+    client
+        .query("Remember this: my favorite color is blue.")
+        .await?;
 
     // Process response and capture session ID
     let messages = client.receive_response()?;
@@ -33,7 +35,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         match msg? {
             Message::Assistant(assistant) => {
                 // Extract text from content blocks
-                let text = assistant.message.content.iter()
+                let text = assistant
+                    .message
+                    .content
+                    .iter()
                     .filter_map(|b| {
                         if let ContentBlock::Text(t) = b {
                             Some(t.text.clone())
@@ -94,7 +99,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     while let Some(msg) = messages.next().await {
         match msg? {
             Message::Assistant(assistant) => {
-                let text = assistant.message.content.iter()
+                let text = assistant
+                    .message
+                    .content
+                    .iter()
                     .filter_map(|b| {
                         if let ContentBlock::Text(t) = b {
                             Some(t.text.clone())
@@ -129,7 +137,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut client = ClaudeSDKClient::new(options);
     client.connect(None).await?;
-    client.query("And what about my favorite color again?").await?;
+    client
+        .query("And what about my favorite color again?")
+        .await?;
 
     let messages = client.receive_response()?;
     let mut messages = Box::pin(messages);
@@ -138,7 +148,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     while let Some(msg) = messages.next().await {
         match msg? {
             Message::Assistant(assistant) => {
-                let text = assistant.message.content.iter()
+                let text = assistant
+                    .message
+                    .content
+                    .iter()
                     .filter_map(|b| {
                         if let ContentBlock::Text(t) = b {
                             Some(t.text.clone())

@@ -5,30 +5,39 @@
 
 use crate::error::{ClaudeSDKError, Result};
 use crate::transport::subprocess::SubprocessTransport;
-use crate::types::{
-    HookInput, HookOutput, PermissionResult, ToolPermissionContext, HookContext,
-};
+use crate::types::{HookContext, HookInput, HookOutput, PermissionResult, ToolPermissionContext};
 
 use futures::Stream;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 use tokio::io::AsyncWriteExt;
 use tokio::process::ChildStdin;
-use tokio::sync::{mpsc, oneshot, Mutex};
+use tokio::sync::{Mutex, mpsc, oneshot};
+
+/// Type alias for the pending control-response map.
+pub type PendingResponses = Arc<Mutex<HashMap<String, oneshot::Sender<Result<Value>>>>>;
 
 /// Type for async hook callback functions.
 pub type HookCallbackFn = Box<
-    dyn Fn(HookInput, Option<String>, HookContext) -> Pin<Box<dyn Future<Output = Result<HookOutput>> + Send>>
+    dyn Fn(
+            HookInput,
+            Option<String>,
+            HookContext,
+        ) -> Pin<Box<dyn Future<Output = Result<HookOutput>> + Send>>
         + Send
         + Sync,
 >;
 
 /// Type for permission callback functions.
 pub type CanUseToolFn = Box<
-    dyn Fn(String, Value, ToolPermissionContext) -> Pin<Box<dyn Future<Output = Result<PermissionResult>> + Send>>
+    dyn Fn(
+            String,
+            Value,
+            ToolPermissionContext,
+        ) -> Pin<Box<dyn Future<Output = Result<PermissionResult>> + Send>>
         + Send
         + Sync,
 >;
@@ -134,8 +143,10 @@ impl Query {
                                 // Handle control response
                                 if let Err(e) = Self::handle_control_response_static(
                                     msg,
-                                    &pending_responses_task
-                                ).await {
+                                    &pending_responses_task,
+                                )
+                                .await
+                                {
                                     eprintln!("Error handling control response: {}", e);
                                 }
                             }
@@ -145,14 +156,18 @@ impl Query {
                                     msg,
                                     &hook_callbacks_task,
                                     &can_use_tool_callback_task,
-                                    &stdin_task
-                                ).await {
+                                    &stdin_task,
+                                )
+                                .await
+                                {
                                     eprintln!("Error handling control request: {}", e);
                                 }
                             }
                             _ => {
                                 // Extract session ID if present (from result, stream_event, or assistant messages)
-                                if let Some(session_id) = msg.get("session_id").and_then(|v| v.as_str()) {
+                                if let Some(session_id) =
+                                    msg.get("session_id").and_then(|v| v.as_str())
+                                {
                                     // Try to set session ID (only succeeds once, subsequent calls ignored)
                                     let _ = current_session_id_task.set(session_id.to_string());
                                 }
@@ -179,8 +194,6 @@ impl Query {
         QueryHandle {
             pending_responses,
             request_counter,
-            hook_callbacks,
-            can_use_tool_callback,
             sdk_messages_rx,
             server_info,
             stdin,
@@ -191,20 +204,18 @@ impl Query {
     /// Handle control response (match to pending request).
     async fn handle_control_response_static(
         msg: Value,
-        pending_responses: &Arc<Mutex<HashMap<String, oneshot::Sender<Result<Value>>>>>,
+        pending_responses: &PendingResponses,
     ) -> Result<()> {
-        let request_id = msg["response"]["request_id"]
-            .as_str()
-            .ok_or_else(|| ClaudeSDKError::message_parse("Missing request_id in control_response"))?;
+        let request_id = msg["response"]["request_id"].as_str().ok_or_else(|| {
+            ClaudeSDKError::message_parse("Missing request_id in control_response")
+        })?;
 
         let mut pending = pending_responses.lock().await;
         if let Some(tx) = pending.remove(request_id) {
             let subtype = msg["response"]["subtype"].as_str();
 
             if subtype == Some("error") {
-                let error_msg = msg["response"]["error"]
-                    .as_str()
-                    .unwrap_or("Unknown error");
+                let error_msg = msg["response"]["error"].as_str().unwrap_or("Unknown error");
                 let _ = tx.send(Err(ClaudeSDKError::other(error_msg)));
             } else {
                 let response = msg["response"]["response"].clone();
@@ -234,9 +245,7 @@ impl Query {
 
         // Execute appropriate handler
         let response_result: Result<Value> = match subtype {
-            "hook_callback" => {
-                Self::handle_hook_callback(request.clone(), hook_callbacks).await
-            }
+            "hook_callback" => Self::handle_hook_callback(request.clone(), hook_callbacks).await,
             "can_use_tool" => {
                 Self::handle_can_use_tool(request.clone(), can_use_tool_callback).await
             }
@@ -244,9 +253,10 @@ impl Query {
                 // MCP bridging not yet implemented
                 Err(ClaudeSDKError::other("MCP bridging not yet implemented"))
             }
-            _ => {
-                Err(ClaudeSDKError::message_parse(format!("Unknown control request subtype: {}", subtype)))
-            }
+            _ => Err(ClaudeSDKError::message_parse(format!(
+                "Unknown control request subtype: {}",
+                subtype
+            ))),
         };
 
         // Send control response back
@@ -283,7 +293,8 @@ impl Query {
     /// Write data to stdin.
     async fn write_to_stdin(stdin: &Arc<Mutex<Option<ChildStdin>>>, data: &str) -> Result<()> {
         let mut stdin_guard = stdin.lock().await;
-        let stdin_ref = stdin_guard.as_mut()
+        let stdin_ref = stdin_guard
+            .as_mut()
             .ok_or(ClaudeSDKError::TransportNotReady)?;
 
         stdin_ref.write_all(data.as_bytes()).await?;
@@ -302,7 +313,8 @@ impl Query {
             .as_str()
             .ok_or_else(|| ClaudeSDKError::message_parse("Missing callback_id"))?;
 
-        let callback = hook_callbacks.get(callback_id)
+        let callback = hook_callbacks
+            .get(callback_id)
             .ok_or_else(|| ClaudeSDKError::HookNotFound(callback_id.to_string()))?;
 
         // Parse hook input
@@ -324,7 +336,8 @@ impl Query {
         request: Value,
         can_use_tool_callback: &Arc<Option<Arc<CanUseToolFn>>>,
     ) -> Result<Value> {
-        let callback = can_use_tool_callback.as_ref()
+        let callback = can_use_tool_callback
+            .as_ref()
             .as_ref()
             .ok_or(ClaudeSDKError::PermissionCallbackNotSet)?;
 
@@ -389,18 +402,18 @@ impl Query {
         match output {
             HookOutput::Sync(_) => {
                 // Convert continue_ to continue
-                if let Some(obj) = json.as_object_mut() {
-                    if let Some(continue_val) = obj.remove("continue_") {
-                        obj.insert("continue".to_string(), continue_val);
-                    }
+                if let Some(obj) = json.as_object_mut()
+                    && let Some(continue_val) = obj.remove("continue_")
+                {
+                    obj.insert("continue".to_string(), continue_val);
                 }
             }
             HookOutput::Async(_) => {
                 // Convert async_ to async
-                if let Some(obj) = json.as_object_mut() {
-                    if let Some(async_val) = obj.remove("async_") {
-                        obj.insert("async".to_string(), async_val);
-                    }
+                if let Some(obj) = json.as_object_mut()
+                    && let Some(async_val) = obj.remove("async_")
+                {
+                    obj.insert("async".to_string(), async_val);
                 }
             }
         }
@@ -416,12 +429,6 @@ pub struct QueryHandle {
 
     /// Counter for generating unique request IDs.
     request_counter: Arc<Mutex<u64>>,
-
-    /// Hook callbacks indexed by callback ID.
-    hook_callbacks: Arc<HashMap<String, Arc<HookCallbackFn>>>,
-
-    /// Permission callback (if set).
-    can_use_tool_callback: Arc<Option<Arc<CanUseToolFn>>>,
 
     /// Channel for SDK messages (non-control messages).
     sdk_messages_rx: Arc<Mutex<mpsc::Receiver<Value>>>,
@@ -492,15 +499,15 @@ impl QueryHandle {
         Query::write_to_stdin(&self.stdin, &control_str).await?;
 
         // Wait for response with timeout
-        let response = tokio::time::timeout(
-            std::time::Duration::from_secs(60),
-            rx
-        )
-        .await
-        .map_err(|_| ClaudeSDKError::control_timeout(60, request["subtype"].as_str().unwrap_or("unknown").to_string()))?
-        .map_err(|_| ClaudeSDKError::other("Response channel closed"))?;
-
-        response
+        tokio::time::timeout(std::time::Duration::from_secs(60), rx)
+            .await
+            .map_err(|_| {
+                ClaudeSDKError::control_timeout(
+                    60,
+                    request["subtype"].as_str().unwrap_or("unknown").to_string(),
+                )
+            })?
+            .map_err(|_| ClaudeSDKError::other("Response channel closed"))?
     }
 
     /// Initialize streaming mode connection.
@@ -556,6 +563,26 @@ impl QueryHandle {
         Ok(())
     }
 
+    /// Rewind tracked files to their state at a specific user message.
+    pub async fn rewind_files(&self, user_message_id: &str) -> Result<()> {
+        let request = json!({
+            "subtype": "rewind_files",
+            "user_message_id": user_message_id
+        });
+
+        self.send_control_request(request).await?;
+        Ok(())
+    }
+
+    /// Get current MCP server connection status.
+    pub async fn get_mcp_status(&self) -> Result<Value> {
+        let request = json!({
+            "subtype": "mcp_status"
+        });
+
+        self.send_control_request(request).await
+    }
+
     /// Send a user message to CLI.
     pub async fn send_user_message(&self, prompt: &str) -> Result<()> {
         let message = json!({
@@ -571,17 +598,27 @@ impl QueryHandle {
 
         Ok(())
     }
+
+    /// Close stdin to signal no more input.
+    ///
+    /// Used in one-shot query mode after sending the prompt to tell the CLI
+    /// that no more messages are coming.
+    pub async fn close_stdin(&self) {
+        let mut stdin_guard = self.stdin.lock().await;
+        // Drop the stdin handle to close the pipe
+        *stdin_guard = None;
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{SyncHookOutput, AsyncHookOutput};
+    use crate::types::{AsyncHookOutput, SyncHookOutput};
 
     #[test]
     fn test_hook_output_field_conversion() {
         // Test Sync output with continue_
-        let sync_output = HookOutput::Sync(SyncHookOutput {
+        let sync_output = HookOutput::Sync(Box::new(SyncHookOutput {
             continue_: Some(true),
             suppress_output: None,
             stop_reason: None,
@@ -589,7 +626,7 @@ mod tests {
             system_message: None,
             reason: None,
             hook_specific_output: None,
-        });
+        }));
 
         let json = Query::convert_hook_output_for_cli(sync_output).unwrap();
         assert!(json.get("continue").is_some());

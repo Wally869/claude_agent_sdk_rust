@@ -5,8 +5,8 @@
 
 use crate::error::Result;
 use crate::types::{
-    HookContext, HookInput, HookOutput, PermissionResult, ToolPermissionContext,
-    SyncHookOutput, AsyncHookOutput,
+    AsyncHookOutput, HookContext, HookInput, HookOutput, PermissionResult, SyncHookOutput,
+    ToolPermissionContext,
 };
 
 use async_trait::async_trait;
@@ -40,7 +40,7 @@ use std::pin::Pin;
 ///         println!("Hook called: {:?}", input);
 ///
 ///         // Allow execution to continue
-///         Ok(HookOutput::Sync(SyncHookOutput {
+///         Ok(HookOutput::Sync(Box::new(SyncHookOutput {
 ///             continue_: Some(true),
 ///             suppress_output: None,
 ///             stop_reason: None,
@@ -48,7 +48,7 @@ use std::pin::Pin;
 ///             system_message: None,
 ///             reason: None,
 ///             hook_specific_output: None,
-///         }))
+///         })))
 ///     }
 /// }
 /// ```
@@ -148,7 +148,11 @@ pub trait PermissionCallback: Send + Sync {
 /// the full trait.
 pub struct ClosureHook<F>
 where
-    F: Fn(HookInput, Option<String>, HookContext) -> Pin<Box<dyn Future<Output = Result<HookOutput>> + Send>>
+    F: Fn(
+            HookInput,
+            Option<String>,
+            HookContext,
+        ) -> Pin<Box<dyn Future<Output = Result<HookOutput>> + Send>>
         + Send
         + Sync,
 {
@@ -157,7 +161,11 @@ where
 
 impl<F> ClosureHook<F>
 where
-    F: Fn(HookInput, Option<String>, HookContext) -> Pin<Box<dyn Future<Output = Result<HookOutput>> + Send>>
+    F: Fn(
+            HookInput,
+            Option<String>,
+            HookContext,
+        ) -> Pin<Box<dyn Future<Output = Result<HookOutput>> + Send>>
         + Send
         + Sync,
 {
@@ -170,7 +178,11 @@ where
 #[async_trait]
 impl<F> HookCallback for ClosureHook<F>
 where
-    F: Fn(HookInput, Option<String>, HookContext) -> Pin<Box<dyn Future<Output = Result<HookOutput>> + Send>>
+    F: Fn(
+            HookInput,
+            Option<String>,
+            HookContext,
+        ) -> Pin<Box<dyn Future<Output = Result<HookOutput>> + Send>>
         + Send
         + Sync,
 {
@@ -187,7 +199,11 @@ where
 /// Helper to convert a closure into a PermissionCallback.
 pub struct ClosurePermission<F>
 where
-    F: Fn(String, Value, ToolPermissionContext) -> Pin<Box<dyn Future<Output = Result<PermissionResult>> + Send>>
+    F: Fn(
+            String,
+            Value,
+            ToolPermissionContext,
+        ) -> Pin<Box<dyn Future<Output = Result<PermissionResult>> + Send>>
         + Send
         + Sync,
 {
@@ -196,7 +212,11 @@ where
 
 impl<F> ClosurePermission<F>
 where
-    F: Fn(String, Value, ToolPermissionContext) -> Pin<Box<dyn Future<Output = Result<PermissionResult>> + Send>>
+    F: Fn(
+            String,
+            Value,
+            ToolPermissionContext,
+        ) -> Pin<Box<dyn Future<Output = Result<PermissionResult>> + Send>>
         + Send
         + Sync,
 {
@@ -209,7 +229,11 @@ where
 #[async_trait]
 impl<F> PermissionCallback for ClosurePermission<F>
 where
-    F: Fn(String, Value, ToolPermissionContext) -> Pin<Box<dyn Future<Output = Result<PermissionResult>> + Send>>
+    F: Fn(
+            String,
+            Value,
+            ToolPermissionContext,
+        ) -> Pin<Box<dyn Future<Output = Result<PermissionResult>> + Send>>
         + Send
         + Sync,
 {
@@ -229,7 +253,7 @@ pub mod hooks {
 
     /// Create a hook output that allows execution to continue.
     pub fn allow() -> HookOutput {
-        HookOutput::Sync(SyncHookOutput {
+        HookOutput::Sync(Box::new(SyncHookOutput {
             continue_: Some(true),
             suppress_output: None,
             stop_reason: None,
@@ -237,12 +261,12 @@ pub mod hooks {
             system_message: None,
             reason: None,
             hook_specific_output: None,
-        })
+        }))
     }
 
     /// Create a hook output that blocks execution.
     pub fn block(reason: impl Into<String>) -> HookOutput {
-        HookOutput::Sync(SyncHookOutput {
+        HookOutput::Sync(Box::new(SyncHookOutput {
             continue_: Some(false),
             suppress_output: None,
             stop_reason: Some(reason.into()),
@@ -250,12 +274,12 @@ pub mod hooks {
             system_message: None,
             reason: None,
             hook_specific_output: None,
-        })
+        }))
     }
 
     /// Create a hook output that allows with a message to the user.
     pub fn allow_with_message(message: impl Into<String>) -> HookOutput {
-        HookOutput::Sync(SyncHookOutput {
+        HookOutput::Sync(Box::new(SyncHookOutput {
             continue_: Some(true),
             suppress_output: None,
             stop_reason: None,
@@ -263,7 +287,7 @@ pub mod hooks {
             system_message: Some(message.into()),
             reason: None,
             hook_specific_output: None,
-        })
+        }))
     }
 
     /// Create a hook output that defers execution (async).

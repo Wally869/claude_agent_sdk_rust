@@ -1,6 +1,5 @@
 //! Error types for Claude Agent SDK.
 
-
 /// Result type alias for Claude SDK operations.
 pub type Result<T> = std::result::Result<T, ClaudeSDKError>;
 
@@ -8,8 +7,10 @@ pub type Result<T> = std::result::Result<T, ClaudeSDKError>;
 #[derive(Debug, thiserror::Error)]
 pub enum ClaudeSDKError {
     /// Claude Code CLI binary not found.
-    #[error("Claude Code CLI not found. Install with: npm install -g @anthropic-ai/claude-code\n\
-             If already installed, ensure it's in PATH or set cli_path in options.")]
+    #[error(
+        "Claude Code CLI not found. Install with: npm install -g @anthropic-ai/claude-code\n\
+             If already installed, ensure it's in PATH or set cli_path in options."
+    )]
     CLINotFound,
 
     /// Failed to connect to or communicate with the CLI.
@@ -17,8 +18,10 @@ pub enum ClaudeSDKError {
     CLIConnection(String),
 
     /// CLI version is below the minimum required version.
-    #[error("Claude Code version {found} is below minimum required version {minimum}.\n\
-             Update with: npm update -g @anthropic-ai/claude-code")]
+    #[error(
+        "Claude Code version {found} is below minimum required version {minimum}.\n\
+             Update with: npm update -g @anthropic-ai/claude-code"
+    )]
     CLIVersionTooOld { found: String, minimum: String },
 
     /// CLI process failed with an error.
@@ -73,7 +76,9 @@ pub enum ClaudeSDKError {
     InvalidConfig(String),
 
     /// JSON buffer exceeded maximum size.
-    #[error("JSON buffer exceeded maximum size of {max_size} bytes. Message may be truncated or malformed.")]
+    #[error(
+        "JSON buffer exceeded maximum size of {max_size} bytes. Message may be truncated or malformed."
+    )]
     BufferOverflow { max_size: usize },
 
     /// IO error occurred.
@@ -91,6 +96,10 @@ pub enum ClaudeSDKError {
     /// Failed to parse data (non-JSON parsing).
     #[error("Parse error: {0}")]
     ParseError(String),
+
+    /// Unknown message type from CLI (forward-compatible skip).
+    #[error("Unknown message type: {0}")]
+    UnknownMessageType(String),
 
     /// Generic error with a custom message.
     #[error("{0}")]

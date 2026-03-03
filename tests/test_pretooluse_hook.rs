@@ -1,11 +1,11 @@
 //! Test to verify if PreToolUse hooks can prevent tool execution.
 
+use async_trait::async_trait;
 use claude_agent_sdk::{
-    callbacks::{hooks, HookCallback},
     ClaudeAgentOptions, ClaudeSDKClient, Message,
+    callbacks::{HookCallback, hooks},
     types::{HookContext, HookEvent, HookInput, HookOutput},
 };
-use async_trait::async_trait;
 use futures::StreamExt;
 use std::sync::{Arc, Mutex};
 
@@ -28,7 +28,9 @@ impl HookCallback for BlockBashHook {
                 eprintln!("[HOOK] Input: {:?}", pre_tool.tool_input);
 
                 if pre_tool.tool_name == "Bash" {
-                    let command = pre_tool.tool_input.get("command")
+                    let command = pre_tool
+                        .tool_input
+                        .get("command")
                         .and_then(|v| v.as_str())
                         .unwrap_or("unknown");
 
@@ -104,10 +106,8 @@ async fn test_pretooluse_hook_blocks_execution() {
                                     bash_result_content = content.to_string();
                                     eprintln!("[MESSAGE] Tool result: {}", bash_result_content);
                                 }
-                            } else {
-                                if let Some(content) = &result.content {
-                                    eprintln!("[MESSAGE] Tool error: {}", content);
-                                }
+                            } else if let Some(content) = &result.content {
+                                eprintln!("[MESSAGE] Tool error: {}", content);
                             }
                         }
                     }
@@ -134,7 +134,7 @@ async fn test_pretooluse_hook_blocks_execution() {
     eprintln!("Result content: {}", bash_result_content);
     eprintln!("========================================\n");
 
-    if attempts.len() > 0 {
+    if !attempts.is_empty() {
         eprintln!("✓ Hook WAS called for Bash");
     } else {
         eprintln!("✗ Hook was NOT called");

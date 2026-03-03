@@ -6,9 +6,9 @@ use crate::callbacks::{HookCallback, PermissionCallback};
 use crate::error::{ClaudeSDKError, Result};
 use crate::parser;
 use crate::query::{CanUseToolFn, HookCallbackFn, Query, QueryHandle};
-use crate::types::{HookContext, HookEvent, HookInput, HookMatcherConfig, ToolPermissionContext};
 use crate::transport::{check_claude_version, find_claude_cli, subprocess::SubprocessTransport};
 use crate::types::{ClaudeAgentOptions, Message, PermissionMode};
+use crate::types::{HookContext, HookEvent, HookInput, HookMatcherConfig, ToolPermissionContext};
 
 use futures::Stream;
 use serde_json::Value;
@@ -46,10 +46,11 @@ struct HookRegistration {
 ///     client.query("What is 2 + 2?").await?;
 ///
 ///     // Receive the response
-///     let mut messages = client.receive_response()?;
+///     let mut messages = Box::pin(client.receive_response()?);
 ///     while let Some(msg) = messages.next().await {
 ///         println!("{:?}", msg?);
 ///     }
+///     drop(messages);
 ///
 ///     // Disconnect
 ///     client.disconnect().await?;
@@ -131,7 +132,7 @@ impl ClaudeSDKClient {
     /// # #[async_trait]
     /// # impl HookCallback for MyHook {
     /// #     async fn call(&self, _: HookInput, _: Option<String>, _: HookContext) -> claude_agent_sdk::Result<HookOutput> {
-    /// #         Ok(HookOutput::Sync(SyncHookOutput::default()))
+    /// #         Ok(HookOutput::Sync(Box::default()))
     /// #     }
     /// # }
     /// let mut client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
@@ -154,13 +155,14 @@ impl ClaudeSDKClient {
         let callback_fn: HookCallbackFn = Box::new(
             move |input: HookInput, tool_use_id: Option<String>, context: HookContext| {
                 let callback_clone = callback_arc.clone();
-                Box::pin(async move {
-                    callback_clone.call(input, tool_use_id, context).await
-                })
+                Box::pin(async move { callback_clone.call(input, tool_use_id, context).await })
             },
         );
 
-        self.hook_callbacks.lock().unwrap().insert(callback_id.clone(), Arc::new(callback_fn));
+        self.hook_callbacks
+            .lock()
+            .unwrap()
+            .insert(callback_id.clone(), Arc::new(callback_fn));
 
         // Store registration metadata
         self.hook_registrations.push(HookRegistration {
@@ -211,9 +213,7 @@ impl ClaudeSDKClient {
         let callback_fn: CanUseToolFn = Box::new(
             move |tool_name: String, input: Value, context: ToolPermissionContext| {
                 let callback_clone = callback_arc.clone();
-                Box::pin(async move {
-                    callback_clone.call(tool_name, input, context).await
-                })
+                Box::pin(async move { callback_clone.call(tool_name, input, context).await })
             },
         );
 
@@ -228,12 +228,13 @@ impl ClaudeSDKClient {
             return None;
         }
 
-        let mut hooks_by_event: HashMap<HookEvent, HashMap<Option<String>, Vec<String>>> = HashMap::new();
+        let mut hooks_by_event: HashMap<HookEvent, HashMap<Option<String>, Vec<String>>> =
+            HashMap::new();
 
         // Group callbacks by event and matcher
         for reg in &self.hook_registrations {
-            let matchers = hooks_by_event.entry(reg.event).or_insert_with(HashMap::new);
-            let callback_ids = matchers.entry(reg.matcher.clone()).or_insert_with(Vec::new);
+            let matchers = hooks_by_event.entry(reg.event).or_default();
+            let callback_ids = matchers.entry(reg.matcher.clone()).or_default();
             callback_ids.push(reg.callback_id.clone());
         }
 
@@ -318,11 +319,7 @@ impl ClaudeSDKClient {
         let permission_callback = self.permission_callback.lock().unwrap().clone();
 
         // Create Query with callbacks and start it
-        let query = Query::new_with_callbacks(
-            transport,
-            hook_callbacks,
-            permission_callback,
-        );
+        let query = Query::new_with_callbacks(transport, hook_callbacks, permission_callback);
         let query_handle = query.start();
 
         // Build hooks configuration
@@ -368,7 +365,9 @@ impl ClaudeSDKClient {
     /// # }
     /// ```
     pub async fn query(&mut self, prompt: impl Into<String>) -> Result<()> {
-        let query_handle = self.query_handle.as_ref()
+        let query_handle = self
+            .query_handle
+            .as_ref()
             .ok_or(ClaudeSDKError::NotConnected)?;
 
         query_handle.send_user_message(&prompt.into()).await?;
@@ -394,7 +393,7 @@ impl ClaudeSDKClient {
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # let mut client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
     /// # client.connect(None).await?;
-    /// let mut messages = client.receive_messages()?;
+    /// let mut messages = Box::pin(client.receive_messages()?);
     /// while let Some(msg) = messages.next().await {
     ///     println!("{:?}", msg?);
     /// }
@@ -402,7 +401,9 @@ impl ClaudeSDKClient {
     /// # }
     /// ```
     pub fn receive_messages(&self) -> Result<impl Stream<Item = Result<Message>> + '_> {
-        let query_handle = self.query_handle.as_ref()
+        let query_handle = self
+            .query_handle
+            .as_ref()
             .ok_or(ClaudeSDKError::NotConnected)?;
 
         let stream = async_stream::stream! {
@@ -415,6 +416,7 @@ impl ClaudeSDKClient {
                     Ok(value) => {
                         match parser::parse_message(value) {
                             Ok(message) => yield Ok(message),
+                            Err(ClaudeSDKError::UnknownMessageType(_)) => continue,
                             Err(e) => yield Err(e),
                         }
                     }
@@ -445,7 +447,7 @@ impl ClaudeSDKClient {
     /// # let mut client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
     /// # client.connect(None).await?;
     /// # client.query("Hello").await?;
-    /// let mut messages = client.receive_response()?;
+    /// let mut messages = Box::pin(client.receive_response()?);
     /// while let Some(msg) = messages.next().await {
     ///     match msg? {
     ///         Message::Assistant(a) => println!("Assistant: {:?}", a),
@@ -460,7 +462,9 @@ impl ClaudeSDKClient {
     /// # }
     /// ```
     pub fn receive_response(&self) -> Result<impl Stream<Item = Result<Message>> + '_> {
-        let query_handle = self.query_handle.as_ref()
+        let query_handle = self
+            .query_handle
+            .as_ref()
             .ok_or(ClaudeSDKError::NotConnected)?;
 
         let stream = async_stream::stream! {
@@ -483,6 +487,7 @@ impl ClaudeSDKClient {
                                     break;
                                 }
                             }
+                            Err(ClaudeSDKError::UnknownMessageType(_)) => continue,
                             Err(e) => {
                                 yield Err(e);
                                 break;
@@ -522,7 +527,9 @@ impl ClaudeSDKClient {
     /// # }
     /// ```
     pub async fn interrupt(&self) -> Result<()> {
-        let query_handle = self.query_handle.as_ref()
+        let query_handle = self
+            .query_handle
+            .as_ref()
             .ok_or(ClaudeSDKError::NotConnected)?;
 
         query_handle.interrupt().await
@@ -551,7 +558,9 @@ impl ClaudeSDKClient {
     /// # }
     /// ```
     pub async fn set_permission_mode(&self, mode: PermissionMode) -> Result<()> {
-        let query_handle = self.query_handle.as_ref()
+        let query_handle = self
+            .query_handle
+            .as_ref()
             .ok_or(ClaudeSDKError::NotConnected)?;
 
         query_handle.set_permission_mode(&mode.to_string()).await
@@ -580,10 +589,56 @@ impl ClaudeSDKClient {
     /// # }
     /// ```
     pub async fn set_model(&self, model: Option<String>) -> Result<()> {
-        let query_handle = self.query_handle.as_ref()
+        let query_handle = self
+            .query_handle
+            .as_ref()
             .ok_or(ClaudeSDKError::NotConnected)?;
 
         query_handle.set_model(model).await
+    }
+
+    /// Rewind tracked files to their state at a specific user message.
+    ///
+    /// Requires `enable_file_checkpointing: true` in options to track file changes,
+    /// and `extra_args: {"replay-user-messages": None}` to receive UserMessage objects
+    /// with `uuid` in the response stream.
+    ///
+    /// # Arguments
+    ///
+    /// * `user_message_id` - UUID of the user message to rewind to
+    ///
+    /// # Errors
+    ///
+    /// Returns error if not connected or request fails.
+    pub async fn rewind_files(&self, user_message_id: &str) -> Result<()> {
+        let query_handle = self
+            .query_handle
+            .as_ref()
+            .ok_or(ClaudeSDKError::NotConnected)?;
+
+        query_handle.rewind_files(user_message_id).await
+    }
+
+    /// Get current MCP server connection status.
+    ///
+    /// Queries the Claude Code CLI for the live connection status of all
+    /// configured MCP servers.
+    ///
+    /// # Returns
+    ///
+    /// JSON value with MCP server status information containing a
+    /// `mcpServers` key with a list of server status objects.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if not connected or request fails.
+    pub async fn get_mcp_status(&self) -> Result<serde_json::Value> {
+        let query_handle = self
+            .query_handle
+            .as_ref()
+            .ok_or(ClaudeSDKError::NotConnected)?;
+
+        query_handle.get_mcp_status().await
     }
 
     /// Get server information from initialization.
@@ -610,7 +665,9 @@ impl ClaudeSDKClient {
     /// # }
     /// ```
     pub async fn get_server_info(&self) -> Result<Option<serde_json::Value>> {
-        let query_handle = self.query_handle.as_ref()
+        let query_handle = self
+            .query_handle
+            .as_ref()
             .ok_or(ClaudeSDKError::NotConnected)?;
 
         Ok(query_handle.get_server_info().await)
@@ -688,7 +745,7 @@ impl ClaudeSDKClient {
     /// client.connect(Some("Hello".to_string())).await?;
     ///
     /// // Process messages
-    /// let mut messages = client.receive_messages()?;
+    /// let mut messages = Box::pin(client.receive_messages()?);
     /// while let Some(msg) = messages.next().await {
     ///     let _ = msg?;
     ///     // Session ID gets captured automatically
@@ -762,9 +819,11 @@ impl ClaudeSDKClient {
             .get("claudeAiOauth")
             .and_then(|oauth| oauth.get("accessToken"))
             .and_then(|token| token.as_str())
-            .ok_or_else(|| ClaudeSDKError::AuthenticationError(
-                "No access token found in credentials file".to_string()
-            ))?;
+            .ok_or_else(|| {
+                ClaudeSDKError::AuthenticationError(
+                    "No access token found in credentials file".to_string(),
+                )
+            })?;
 
         // Make request to usage endpoint
         let client = reqwest::Client::new();
@@ -779,17 +838,20 @@ impl ClaudeSDKClient {
         // Check for errors
         if !response.status().is_success() {
             let status = response.status();
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(ClaudeSDKError::NetworkError(
-                format!("Usage API request failed ({}): {}", status, error_text)
-            ));
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(ClaudeSDKError::NetworkError(format!(
+                "Usage API request failed ({}): {}",
+                status, error_text
+            )));
         }
 
         // Parse response
-        let usage: UsageData = response
-            .json()
-            .await
-            .map_err(|e| ClaudeSDKError::ParseError(format!("Failed to parse usage response: {}", e)))?;
+        let usage: UsageData = response.json().await.map_err(|e| {
+            ClaudeSDKError::ParseError(format!("Failed to parse usage response: {}", e))
+        })?;
 
         Ok(usage)
     }
@@ -798,22 +860,23 @@ impl ClaudeSDKClient {
     fn read_oauth_credentials() -> Result<serde_json::Value> {
         let home_dir = std::env::var("HOME")
             .or_else(|_| std::env::var("USERPROFILE"))
-            .map_err(|_| ClaudeSDKError::AuthenticationError(
-                "Cannot determine home directory".to_string()
-            ))?;
+            .map_err(|_| {
+                ClaudeSDKError::AuthenticationError("Cannot determine home directory".to_string())
+            })?;
 
         let credentials_path = std::path::PathBuf::from(home_dir)
             .join(".claude")
             .join(".credentials.json");
 
-        let contents = std::fs::read_to_string(&credentials_path)
-            .map_err(|e| ClaudeSDKError::AuthenticationError(
-                format!("Failed to read credentials file at {:?}: {}", credentials_path, e)
-            ))?;
-
-        serde_json::from_str(&contents)
-            .map_err(|e| ClaudeSDKError::ParseError(
-                format!("Invalid credentials file format: {}", e)
+        let contents = std::fs::read_to_string(&credentials_path).map_err(|e| {
+            ClaudeSDKError::AuthenticationError(format!(
+                "Failed to read credentials file at {:?}: {}",
+                credentials_path, e
             ))
+        })?;
+
+        serde_json::from_str(&contents).map_err(|e| {
+            ClaudeSDKError::ParseError(format!("Invalid credentials file format: {}", e))
+        })
     }
 }
