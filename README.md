@@ -14,6 +14,12 @@ The Claude Agent SDK enables you to build powerful AI agents using Claude Code's
 - Interactive bidirectional conversations
 - Usage tracking and quota monitoring (Max Plan)
 
+## Important Notes
+
+> **Structured output requires more than 1 turn.** When using `output_format` with a JSON schema, the CLI may need additional turns internally to produce structured JSON. Set `max_turns` to at least 2-3 (or omit it entirely) — using `max_turns(1)` will likely result in `error_max_turns` with no structured output.
+
+> **`max_budget_usd` is a soft cap.** The budget limit is checked between turns, not mid-generation. The current turn will always complete before the budget is evaluated, so actual spend may slightly exceed the configured limit.
+
 ## Prerequisites
 
 - **Rust**: 1.70 or higher
@@ -226,6 +232,85 @@ let options = ClaudeAgentOptions::builder()
 
 ```rust
 .model(Some("claude-opus-4-20250514".to_string()))
+```
+
+### Thinking and Effort
+
+Control Claude's reasoning depth:
+
+```rust
+use claude_agent_sdk::{query, ClaudeAgentOptions, ThinkingConfig, Effort};
+
+let options = ClaudeAgentOptions::builder()
+    .thinking(Some(ThinkingConfig::Adaptive))  // Let Claude decide when to think
+    .effort(Some(Effort::High))                // More thorough responses
+    .build();
+
+let messages = query("Solve this complex problem...", Some(options)).await?;
+```
+
+**ThinkingConfig variants:**
+- `Adaptive` — Claude decides when extended thinking is useful
+- `Enabled { budget_tokens }` — Always think, with a token budget
+- `Disabled` — No extended thinking
+
+**Effort levels:** `Low`, `Medium`, `High`, `Max`
+
+### Structured Output
+
+Get responses as validated JSON matching a schema:
+
+```rust
+use claude_agent_sdk::{query, ClaudeAgentOptions, Message};
+
+let schema = serde_json::json!({
+    "type": "json_schema",
+    "schema": {
+        "type": "object",
+        "properties": {
+            "capital": { "type": "string" },
+            "population": { "type": "string" }
+        },
+        "required": ["capital", "population"]
+    }
+});
+
+let options = ClaudeAgentOptions::builder()
+    .output_format(Some(schema))
+    .max_turns(3u32)  // Structured output needs >1 turn
+    .build();
+
+let mut messages = query("What is the capital and population of Japan?", Some(options)).await?;
+
+while let Some(msg) = messages.next().await {
+    if let Ok(Message::Result(result)) = msg {
+        if let Some(output) = &result.structured_output {
+            println!("{}", output);
+            // {"capital": "Tokyo", "population": "approximately 125 million"}
+        }
+    }
+}
+```
+
+### Budget Limits
+
+Set a soft spending cap per query:
+
+```rust
+let options = ClaudeAgentOptions::builder()
+    .max_budget_usd(Some(0.05))  // Soft cap — see Important Notes above
+    .build();
+```
+
+### Fallback Model
+
+Specify a fallback model if the primary is unavailable:
+
+```rust
+let options = ClaudeAgentOptions::builder()
+    .model(Some("claude-opus-4-20250514".into()))
+    .fallback_model(Some("claude-sonnet-4-5-20250929".into()))
+    .build();
 ```
 
 ## Advanced Features
@@ -456,6 +541,7 @@ See the `examples/` directory for complete working examples:
 - **`with_callbacks.rs`** - Hooks and permission callbacks
 - **`session_resume.rs`** - Session management and resuming conversations
 - **`usage_tracking.rs`** - Monitor Claude Code usage and quotas (Max Plan)
+- **`new_features.rs`** - Thinking, effort, budget limits, structured output, MCP status
 
 Run examples:
 ```bash
@@ -464,6 +550,7 @@ cargo run --example interactive
 cargo run --example with_callbacks
 cargo run --example session_resume
 cargo run --example usage_tracking
+cargo run --example new_features
 ```
 
 ## Documentation
