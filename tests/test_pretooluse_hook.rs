@@ -1,7 +1,7 @@
 //! Test to verify if PreToolUse hooks can prevent tool execution.
 
 use async_trait::async_trait;
-use claude_agent_sdk::{
+use claude_agent_sdk_rust::{
     ClaudeAgentOptions, ClaudeSDKClient, Message,
     callbacks::{HookCallback, hooks},
     types::{HookContext, HookEvent, HookInput, HookOutput},
@@ -21,7 +21,7 @@ impl HookCallback for BlockBashHook {
         input: HookInput,
         _tool_use_id: Option<String>,
         _context: HookContext,
-    ) -> claude_agent_sdk::Result<HookOutput> {
+    ) -> claude_agent_sdk_rust::Result<HookOutput> {
         match input {
             HookInput::PreToolUse(pre_tool) => {
                 eprintln!("\n[HOOK CALLED] PreToolUse for: {}", pre_tool.tool_name);
@@ -86,7 +86,7 @@ async fn test_pretooluse_hook_blocks_execution() {
             Message::Assistant(msg) => {
                 eprintln!("[MESSAGE] Assistant message received");
                 for block in &msg.message.content {
-                    if let claude_agent_sdk::ContentBlock::ToolUse(tool_use) = block {
+                    if let claude_agent_sdk_rust::ContentBlock::ToolUse(tool_use) = block {
                         eprintln!("[MESSAGE] Tool use: {}", tool_use.name);
                         if tool_use.name == "Bash" {
                             got_bash_tool_use = true;
@@ -96,9 +96,9 @@ async fn test_pretooluse_hook_blocks_execution() {
             }
             Message::User(msg) => {
                 eprintln!("[MESSAGE] User message (tool result) received");
-                if let claude_agent_sdk::MessageContent::Blocks(blocks) = &msg.message.content {
+                if let claude_agent_sdk_rust::MessageContent::Blocks(blocks) = &msg.message.content {
                     for block in blocks {
-                        if let claude_agent_sdk::ContentBlock::ToolResult(result) = block {
+                        if let claude_agent_sdk_rust::ContentBlock::ToolResult(result) = block {
                             let is_err = result.is_error.unwrap_or(false);
                             if !is_err {
                                 got_bash_result = true;

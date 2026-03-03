@@ -1,6 +1,6 @@
 //! Interactive example demonstrating ClaudeSDKClient for multi-turn conversations.
 
-use claude_agent_sdk::{ClaudeAgentOptions, ClaudeSDKClient, Message, Result};
+use claude_agent_sdk_rust::{ClaudeAgentOptions, ClaudeSDKClient, Message, Result};
 use futures::StreamExt;
 
 #[tokio::main]

@@ -1,5 +1,5 @@
 [package]
-name = "claude-agent-sdk"
+name = "claude-agent-sdk-rust"
 version = "1.0.0"
 edition = "2024"
 authors = ["William <wally869@protonmail.com>"]

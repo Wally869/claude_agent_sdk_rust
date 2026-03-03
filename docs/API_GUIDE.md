@@ -33,7 +33,7 @@ The Claude Agent SDK for Rust provides a production-ready interface to Claude Co
 ## Quick Start
 
 ```rust
-use claude_agent_sdk::{query, Message};
+use claude_agent_sdk_rust::{query, Message};
 use futures::StreamExt;
 
 #[tokio::main]
@@ -104,7 +104,7 @@ pub enum ContentBlock {
 ### Basic Usage
 
 ```rust
-use claude_agent_sdk::query;
+use claude_agent_sdk_rust::query;
 use futures::StreamExt;
 
 let messages = query("Explain async/await in Rust", None).await?;
@@ -118,7 +118,7 @@ while let Some(msg) = messages.next().await {
 ### With Options
 
 ```rust
-use claude_agent_sdk::{query, ClaudeAgentOptions, PermissionMode};
+use claude_agent_sdk_rust::{query, ClaudeAgentOptions, PermissionMode};
 
 let options = ClaudeAgentOptions::builder()
     .permission_mode(PermissionMode::AcceptEdits)
@@ -134,7 +134,7 @@ let messages = query("Help me refactor this code", Some(options)).await?;
 ### Connection Lifecycle
 
 ```rust
-use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions};
+use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions};
 
 // Create client
 let mut client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
@@ -200,8 +200,8 @@ Hooks allow you to intercept and control agent behavior at specific points.
 ### Implementing a Hook
 
 ```rust
-use claude_agent_sdk::callbacks::{HookCallback, hooks};
-use claude_agent_sdk::types::{HookInput, HookOutput, HookContext};
+use claude_agent_sdk_rust::callbacks::{HookCallback, hooks};
+use claude_agent_sdk_rust::types::{HookInput, HookOutput, HookContext};
 use async_trait::async_trait;
 
 struct LoggingHook;
@@ -213,7 +213,7 @@ impl HookCallback for LoggingHook {
         input: HookInput,
         tool_use_id: Option<String>,
         _context: HookContext,
-    ) -> claude_agent_sdk::Result<HookOutput> {
+    ) -> claude_agent_sdk_rust::Result<HookOutput> {
         // Match on hook input type
         if let HookInput::PreToolUse(pre_tool) = input {
             println!("Tool: {}", pre_tool.tool_name);
@@ -229,7 +229,7 @@ impl HookCallback for LoggingHook {
 ### Registering Hooks
 
 ```rust
-use claude_agent_sdk::types::HookEvent;
+use claude_agent_sdk_rust::types::HookEvent;
 
 let mut client = ClaudeSDKClient::new(options);
 
@@ -251,7 +251,7 @@ let hook_id = client.register_hook(
 ### Hook Responses
 
 ```rust
-use claude_agent_sdk::callbacks::hooks;
+use claude_agent_sdk_rust::callbacks::hooks;
 
 // Allow execution
 Ok(hooks::allow())
@@ -273,8 +273,8 @@ Permission callbacks control which tools Claude can use and how.
 ### Implementing a Permission Callback
 
 ```rust
-use claude_agent_sdk::callbacks::{PermissionCallback, permissions};
-use claude_agent_sdk::types::{PermissionResult, ToolPermissionContext};
+use claude_agent_sdk_rust::callbacks::{PermissionCallback, permissions};
+use claude_agent_sdk_rust::types::{PermissionResult, ToolPermissionContext};
 use async_trait::async_trait;
 use serde_json::Value;
 
@@ -287,7 +287,7 @@ impl PermissionCallback for SafetyChecker {
         tool_name: String,
         input: Value,
         _context: ToolPermissionContext,
-    ) -> claude_agent_sdk::Result<PermissionResult> {
+    ) -> claude_agent_sdk_rust::Result<PermissionResult> {
         // Block dangerous commands
         if tool_name == "Bash" {
             if let Some(cmd) = input.get("command").and_then(|v| v.as_str()) {
@@ -315,7 +315,7 @@ client.set_permission_callback(SafetyChecker);
 ### Permission Responses
 
 ```rust
-use claude_agent_sdk::callbacks::permissions;
+use claude_agent_sdk_rust::callbacks::permissions;
 
 // Allow tool use
 Ok(permissions::allow())
@@ -337,7 +337,7 @@ Control Claude's reasoning depth with thinking configuration and effort levels.
 ### ThinkingConfig
 
 ```rust
-use claude_agent_sdk::{ClaudeAgentOptions, ThinkingConfig};
+use claude_agent_sdk_rust::{ClaudeAgentOptions, ThinkingConfig};
 
 // Adaptive: Claude decides when to use extended thinking
 let options = ClaudeAgentOptions::builder()
@@ -360,7 +360,7 @@ Maps to the `--max-thinking-tokens` CLI flag. `Adaptive` passes `0`, `Enabled` p
 ### Effort
 
 ```rust
-use claude_agent_sdk::{ClaudeAgentOptions, Effort};
+use claude_agent_sdk_rust::{ClaudeAgentOptions, Effort};
 
 let options = ClaudeAgentOptions::builder()
     .effort(Some(Effort::High))
@@ -376,7 +376,7 @@ Get Claude's response as validated JSON conforming to a schema. The `output_form
 > **Important:** Structured output typically requires more than 1 turn. Set `max_turns` to at least 2-3 or omit it entirely. Using `max_turns(1)` will likely produce `error_max_turns` with no structured output.
 
 ```rust
-use claude_agent_sdk::{query, ClaudeAgentOptions, Message};
+use claude_agent_sdk_rust::{query, ClaudeAgentOptions, Message};
 use futures::StreamExt;
 
 let schema = serde_json::json!({
@@ -441,7 +441,7 @@ let options = ClaudeAgentOptions::builder()
 ### ClaudeAgentOptions
 
 ```rust
-use claude_agent_sdk::{
+use claude_agent_sdk_rust::{
     ClaudeAgentOptions, PermissionMode, SystemPrompt, SettingSource,
     ThinkingConfig, Effort,
 };
@@ -565,7 +565,7 @@ pub enum ClaudeSDKError {
 ### Handling Errors
 
 ```rust
-use claude_agent_sdk::ClaudeSDKError;
+use claude_agent_sdk_rust::ClaudeSDKError;
 
 match query("prompt", None).await {
     Ok(stream) => { /* handle stream */ }
@@ -582,7 +582,7 @@ match query("prompt", None).await {
 ### Example 1: Simple Code Review
 
 ```rust
-use claude_agent_sdk::{query, Message, ClaudeAgentOptions};
+use claude_agent_sdk_rust::{query, Message, ClaudeAgentOptions};
 use futures::StreamExt;
 
 #[tokio::main]
@@ -618,7 +618,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Example 2: Interactive Refactoring
 
 ```rust
-use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions, Message};
+use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions, Message};
 use futures::StreamExt;
 
 #[tokio::main]
@@ -658,7 +658,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Example 3: Safety-Enhanced Agent
 
 ```rust
-use claude_agent_sdk::{
+use claude_agent_sdk_rust::{
     ClaudeSDKClient, ClaudeAgentOptions, Message,
     callbacks::{PermissionCallback, permissions, HookCallback, hooks},
     types::{HookEvent, HookInput, HookOutput, HookContext,
@@ -676,7 +676,7 @@ impl PermissionCallback for CommandValidator {
         tool_name: String,
         input: Value,
         _ctx: ToolPermissionContext,
-    ) -> claude_agent_sdk::Result<PermissionResult> {
+    ) -> claude_agent_sdk_rust::Result<PermissionResult> {
         if tool_name == "Bash" {
             if let Some(cmd) = input.get("command").and_then(|v| v.as_str()) {
                 // Block network access
@@ -698,7 +698,7 @@ impl HookCallback for AuditLogger {
         input: HookInput,
         _tool_use_id: Option<String>,
         _ctx: HookContext,
-    ) -> claude_agent_sdk::Result<HookOutput> {
+    ) -> claude_agent_sdk_rust::Result<HookOutput> {
         if let HookInput::PreToolUse(pre_tool) = input {
             // Log to audit file
             println!("[AUDIT] {} - {:?}", pre_tool.tool_name, pre_tool.tool_input);

@@ -3,7 +3,7 @@
 //! Tests: thinking config, effort, max_budget_usd, structured output,
 //! tools option, and the interactive client's get_mcp_status().
 
-use claude_agent_sdk::{
+use claude_agent_sdk_rust::{
     ClaudeAgentOptions, ClaudeSDKClient, Effort, Message, Result, ThinkingConfig, query,
 };
 use futures::StreamExt;

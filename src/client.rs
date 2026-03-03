@@ -31,7 +31,7 @@ struct HookRegistration {
 /// # Example
 ///
 /// ```no_run
-/// use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions};
+/// use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions};
 /// use futures::StreamExt;
 ///
 /// #[tokio::main]
@@ -90,7 +90,7 @@ impl ClaudeSDKClient {
     /// # Example
     ///
     /// ```no_run
-    /// use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions};
+    /// use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions};
     ///
     /// let options = ClaudeAgentOptions::default();
     /// let client = ClaudeSDKClient::new(options);
@@ -124,14 +124,14 @@ impl ClaudeSDKClient {
     /// # Example
     ///
     /// ```no_run
-    /// # use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions};
-    /// # use claude_agent_sdk::callbacks::HookCallback;
-    /// # use claude_agent_sdk::types::{HookEvent, HookInput, HookOutput, HookContext, SyncHookOutput};
+    /// # use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions};
+    /// # use claude_agent_sdk_rust::callbacks::HookCallback;
+    /// # use claude_agent_sdk_rust::types::{HookEvent, HookInput, HookOutput, HookContext, SyncHookOutput};
     /// # use async_trait::async_trait;
     /// # struct MyHook;
     /// # #[async_trait]
     /// # impl HookCallback for MyHook {
-    /// #     async fn call(&self, _: HookInput, _: Option<String>, _: HookContext) -> claude_agent_sdk::Result<HookOutput> {
+    /// #     async fn call(&self, _: HookInput, _: Option<String>, _: HookContext) -> claude_agent_sdk_rust::Result<HookOutput> {
     /// #         Ok(HookOutput::Sync(Box::default()))
     /// #     }
     /// # }
@@ -186,15 +186,15 @@ impl ClaudeSDKClient {
     /// # Example
     ///
     /// ```no_run
-    /// # use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions};
-    /// # use claude_agent_sdk::callbacks::PermissionCallback;
-    /// # use claude_agent_sdk::types::{PermissionResult, ToolPermissionContext, PermissionResultAllow};
+    /// # use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions};
+    /// # use claude_agent_sdk_rust::callbacks::PermissionCallback;
+    /// # use claude_agent_sdk_rust::types::{PermissionResult, ToolPermissionContext, PermissionResultAllow};
     /// # use async_trait::async_trait;
     /// # use serde_json::Value;
     /// # struct MyPermissionChecker;
     /// # #[async_trait]
     /// # impl PermissionCallback for MyPermissionChecker {
-    /// #     async fn call(&self, _: String, _: Value, _: ToolPermissionContext) -> claude_agent_sdk::Result<PermissionResult> {
+    /// #     async fn call(&self, _: String, _: Value, _: ToolPermissionContext) -> claude_agent_sdk_rust::Result<PermissionResult> {
     /// #         Ok(PermissionResult::Allow(PermissionResultAllow {
     /// #             behavior: "allow".to_string(),
     /// #             updated_input: None,
@@ -278,7 +278,7 @@ impl ClaudeSDKClient {
     /// # Example
     ///
     /// ```no_run
-    /// # use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions};
+    /// # use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions};
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let mut client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
@@ -355,7 +355,7 @@ impl ClaudeSDKClient {
     /// # Example
     ///
     /// ```no_run
-    /// # use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions};
+    /// # use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions};
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # let mut client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
@@ -387,7 +387,7 @@ impl ClaudeSDKClient {
     /// # Example
     ///
     /// ```no_run
-    /// # use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions};
+    /// # use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions};
     /// # use futures::StreamExt;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -440,7 +440,7 @@ impl ClaudeSDKClient {
     /// # Example
     ///
     /// ```no_run
-    /// # use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions, Message};
+    /// # use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions, Message};
     /// # use futures::StreamExt;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -517,7 +517,7 @@ impl ClaudeSDKClient {
     /// # Example
     ///
     /// ```no_run
-    /// # use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions};
+    /// # use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions};
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # let mut client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
@@ -548,7 +548,7 @@ impl ClaudeSDKClient {
     /// # Example
     ///
     /// ```no_run
-    /// # use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions, PermissionMode};
+    /// # use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions, PermissionMode};
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # let mut client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
@@ -579,7 +579,7 @@ impl ClaudeSDKClient {
     /// # Example
     ///
     /// ```no_run
-    /// # use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions};
+    /// # use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions};
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # let mut client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
@@ -653,7 +653,7 @@ impl ClaudeSDKClient {
     /// # Example
     ///
     /// ```no_run
-    /// # use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions};
+    /// # use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions};
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # let mut client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
@@ -685,7 +685,7 @@ impl ClaudeSDKClient {
     /// # Example
     ///
     /// ```no_run
-    /// # use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions};
+    /// # use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions};
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # let mut client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
@@ -715,7 +715,7 @@ impl ClaudeSDKClient {
     /// # Example
     ///
     /// ```no_run
-    /// # use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions};
+    /// # use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions};
     /// let client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
     /// assert!(!client.is_connected());
     /// ```
@@ -737,7 +737,7 @@ impl ClaudeSDKClient {
     /// # Example
     ///
     /// ```no_run
-    /// # use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions};
+    /// # use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions};
     /// # use futures::StreamExt;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -792,7 +792,7 @@ impl ClaudeSDKClient {
     /// # Example
     ///
     /// ```no_run
-    /// # use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions};
+    /// # use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions};
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let client = ClaudeSDKClient::new(ClaudeAgentOptions::default());

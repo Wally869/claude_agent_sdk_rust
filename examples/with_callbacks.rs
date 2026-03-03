@@ -7,7 +7,7 @@
 //! - Monitor agent behavior with hook callbacks
 
 use async_trait::async_trait;
-use claude_agent_sdk::{
+use claude_agent_sdk_rust::{
     ClaudeAgentOptions, ClaudeSDKClient, Message, Result,
     callbacks::{HookCallback, PermissionCallback, hooks, permissions},
     types::{

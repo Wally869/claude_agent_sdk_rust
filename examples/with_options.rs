@@ -1,6 +1,6 @@
 //! Example demonstrating various ClaudeAgentOptions.
 
-use claude_agent_sdk::{
+use claude_agent_sdk_rust::{
     ClaudeAgentOptions, Message, PermissionMode, SettingSource, SystemPrompt, query,
 };
 use futures::StreamExt;

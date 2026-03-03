@@ -1,4 +1,4 @@
-use claude_agent_sdk::{ClaudeAgentOptions, ClaudeSDKClient};
+use claude_agent_sdk_rust::{ClaudeAgentOptions, ClaudeSDKClient};
 
 /// Example demonstrating usage tracking for Claude Code.
 ///

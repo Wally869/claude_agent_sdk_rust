@@ -22,9 +22,9 @@ use std::pin::Pin;
 /// # Example
 ///
 /// ```no_run
-/// use claude_agent_sdk::callbacks::HookCallback;
-/// use claude_agent_sdk::types::{HookInput, HookOutput, HookContext, SyncHookOutput};
-/// use claude_agent_sdk::Result;
+/// use claude_agent_sdk_rust::callbacks::HookCallback;
+/// use claude_agent_sdk_rust::types::{HookInput, HookOutput, HookContext, SyncHookOutput};
+/// use claude_agent_sdk_rust::Result;
 /// use async_trait::async_trait;
 ///
 /// struct LoggingHook;
@@ -81,9 +81,9 @@ pub trait HookCallback: Send + Sync {
 /// # Example
 ///
 /// ```no_run
-/// use claude_agent_sdk::callbacks::PermissionCallback;
-/// use claude_agent_sdk::types::{PermissionResult, ToolPermissionContext, PermissionResultAllow};
-/// use claude_agent_sdk::Result;
+/// use claude_agent_sdk_rust::callbacks::PermissionCallback;
+/// use claude_agent_sdk_rust::types::{PermissionResult, ToolPermissionContext, PermissionResultAllow};
+/// use claude_agent_sdk_rust::Result;
 /// use async_trait::async_trait;
 /// use serde_json::Value;
 ///
@@ -102,7 +102,7 @@ pub trait HookCallback: Send + Sync {
 ///             if let Some(cmd) = input.get("command").and_then(|v| v.as_str()) {
 ///                 if cmd.contains("rm -rf") {
 ///                     return Ok(PermissionResult::Deny(
-///                         claude_agent_sdk::types::PermissionResultDeny {
+///                         claude_agent_sdk_rust::types::PermissionResultDeny {
 ///                             behavior: "deny".to_string(),
 ///                             message: "Dangerous command blocked".to_string(),
 ///                             interrupt: false,

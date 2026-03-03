@@ -7,7 +7,7 @@
 //! Run with: cargo test --test integration_test -- --ignored
 
 use async_trait::async_trait;
-use claude_agent_sdk::{
+use claude_agent_sdk_rust::{
     ClaudeAgentOptions, ClaudeSDKClient, Message, PermissionMode,
     callbacks::{HookCallback, PermissionCallback, hooks, permissions},
     query,
@@ -207,7 +207,7 @@ impl HookCallback for TestHook {
         _input: HookInput,
         _tool_use_id: Option<String>,
         _context: HookContext,
-    ) -> claude_agent_sdk::Result<HookOutput> {
+    ) -> claude_agent_sdk_rust::Result<HookOutput> {
         let mut count = self.call_count.lock().unwrap();
         *count += 1;
         Ok(hooks::allow())
@@ -265,7 +265,7 @@ impl PermissionCallback for BlockingPermissionCallback {
         tool_name: String,
         _input: Value,
         _context: ToolPermissionContext,
-    ) -> claude_agent_sdk::Result<PermissionResult> {
+    ) -> claude_agent_sdk_rust::Result<PermissionResult> {
         // Block all Bash commands
         if tool_name == "Bash" {
             return Ok(permissions::deny("Bash is blocked in tests"));
@@ -428,7 +428,7 @@ async fn test_system_prompt() {
         return;
     }
 
-    use claude_agent_sdk::types::SystemPrompt;
+    use claude_agent_sdk_rust::types::SystemPrompt;
 
     let options = ClaudeAgentOptions::builder()
         .system_prompt(SystemPrompt::Text(

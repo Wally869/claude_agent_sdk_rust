@@ -1,6 +1,6 @@
 //! Basic example of using the Claude Agent SDK.
 
-use claude_agent_sdk::{Message, Result, query};
+use claude_agent_sdk_rust::{Message, Result, query};
 use futures::StreamExt;
 
 #[tokio::main]

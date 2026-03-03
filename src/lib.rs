@@ -5,7 +5,7 @@
 //! # Quick Start
 //!
 //! ```no_run
-//! use claude_agent_sdk::{query, ClaudeAgentOptions, Message};
+//! use claude_agent_sdk_rust::{query, ClaudeAgentOptions, Message};
 //! use futures::StreamExt;
 //!
 //! #[tokio::main]
@@ -74,7 +74,7 @@ use transport::{check_claude_version, find_claude_cli, subprocess::SubprocessTra
 /// # Example
 ///
 /// ```no_run
-/// use claude_agent_sdk::{query, Message};
+/// use claude_agent_sdk_rust::{query, Message};
 /// use futures::StreamExt;
 ///
 /// #[tokio::main]

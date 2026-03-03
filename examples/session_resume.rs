@@ -1,4 +1,4 @@
-use claude_agent_sdk::{ClaudeAgentOptions, ClaudeSDKClient, ContentBlock, Message};
+use claude_agent_sdk_rust::{ClaudeAgentOptions, ClaudeSDKClient, ContentBlock, Message};
 use futures::StreamExt;
 
 /// Example demonstrating session management and resuming conversations.

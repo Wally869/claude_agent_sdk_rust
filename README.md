@@ -58,7 +58,7 @@ claude -v
 
 ```toml
 [dependencies]
-claude-agent-sdk = "1"
+claude-agent-sdk-rust = "1"
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"
 ```
@@ -109,7 +109,7 @@ claude --print "Hello, Claude!"
 ### Simple Query
 
 ```rust
-use claude_agent_sdk::{query, Message};
+use claude_agent_sdk_rust::{query, Message};
 use futures::StreamExt;
 
 #[tokio::main]
@@ -139,7 +139,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### With Configuration
 
 ```rust
-use claude_agent_sdk::{query, ClaudeAgentOptions, PermissionMode, SystemPrompt};
+use claude_agent_sdk_rust::{query, ClaudeAgentOptions, PermissionMode, SystemPrompt};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -162,7 +162,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Interactive Conversation
 
 ```rust
-use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions, Message};
+use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions, Message};
 use futures::StreamExt;
 
 #[tokio::main]
@@ -252,7 +252,7 @@ let options = ClaudeAgentOptions::builder()
 Control Claude's reasoning depth:
 
 ```rust
-use claude_agent_sdk::{query, ClaudeAgentOptions, ThinkingConfig, Effort};
+use claude_agent_sdk_rust::{query, ClaudeAgentOptions, ThinkingConfig, Effort};
 
 let options = ClaudeAgentOptions::builder()
     .thinking(Some(ThinkingConfig::Adaptive))  // Let Claude decide when to think
@@ -274,7 +274,7 @@ let messages = query("Solve this complex problem...", Some(options)).await?;
 Get responses as validated JSON matching a schema:
 
 ```rust
-use claude_agent_sdk::{query, ClaudeAgentOptions, Message};
+use claude_agent_sdk_rust::{query, ClaudeAgentOptions, Message};
 
 let schema = serde_json::json!({
     "type": "json_schema",
@@ -333,8 +333,8 @@ let options = ClaudeAgentOptions::builder()
 Programmatically control tool usage with the `PermissionCallback` trait:
 
 ```rust
-use claude_agent_sdk::callbacks::{PermissionCallback, permissions};
-use claude_agent_sdk::types::{PermissionResult, ToolPermissionContext};
+use claude_agent_sdk_rust::callbacks::{PermissionCallback, permissions};
+use claude_agent_sdk_rust::types::{PermissionResult, ToolPermissionContext};
 use async_trait::async_trait;
 use serde_json::Value;
 
@@ -347,7 +347,7 @@ impl PermissionCallback for SafetyChecker {
         tool_name: String,
         input: Value,
         _context: ToolPermissionContext,
-    ) -> claude_agent_sdk::Result<PermissionResult> {
+    ) -> claude_agent_sdk_rust::Result<PermissionResult> {
         if tool_name == "Bash" {
             if let Some(cmd) = input.get("command").and_then(|v| v.as_str()) {
                 if cmd.contains("rm -rf") {
@@ -370,8 +370,8 @@ client.connect(None).await?;
 Execute custom code at specific points in the agent loop:
 
 ```rust
-use claude_agent_sdk::callbacks::{HookCallback, hooks};
-use claude_agent_sdk::types::{HookInput, HookOutput, HookContext, HookEvent};
+use claude_agent_sdk_rust::callbacks::{HookCallback, hooks};
+use claude_agent_sdk_rust::types::{HookInput, HookOutput, HookContext, HookEvent};
 use async_trait::async_trait;
 
 struct ValidationHook;
@@ -383,7 +383,7 @@ impl HookCallback for ValidationHook {
         input: HookInput,
         _tool_use_id: Option<String>,
         _context: HookContext,
-    ) -> claude_agent_sdk::Result<HookOutput> {
+    ) -> claude_agent_sdk_rust::Result<HookOutput> {
         if let HookInput::PreToolUse(pre) = input {
             if pre.tool_name == "Bash" {
                 if let Some(cmd) = pre.tool_input.get("command")
@@ -410,7 +410,7 @@ Use external MCP servers for custom tools:
 
 ```rust
 use std::collections::HashMap;
-use claude_agent_sdk::types::{McpServerConfig, McpStdioConfig};
+use claude_agent_sdk_rust::types::{McpServerConfig, McpStdioConfig};
 
 let mut mcp_servers = HashMap::new();
 mcp_servers.insert("calculator".into(), McpServerConfig::Stdio(
@@ -440,7 +440,7 @@ Claude Code includes 20+ built-in tools:
 ## Error Handling
 
 ```rust
-use claude_agent_sdk::ClaudeSDKError;
+use claude_agent_sdk_rust::ClaudeSDKError;
 
 match query("test", None).await {
     Ok(messages) => { /* process */ }
@@ -475,7 +475,7 @@ The SDK provides full support for managing conversation sessions, allowing you t
 Session IDs are automatically captured from messages:
 
 ```rust
-use claude_agent_sdk::{ClaudeSDKClient, ClaudeAgentOptions, Message};
+use claude_agent_sdk_rust::{ClaudeSDKClient, ClaudeAgentOptions, Message};
 use futures::StreamExt;
 
 let mut client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
