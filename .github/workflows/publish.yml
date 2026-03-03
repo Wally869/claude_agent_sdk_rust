@@ -18,8 +18,11 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Run tests
-        run: cargo test --lib --doc
+      - name: Run unit tests
+        run: cargo test --lib
+
+      - name: Run doc tests
+        run: cargo test --doc
 
       - name: Verify package
         run: cargo package --allow-dirty
