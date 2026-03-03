@@ -40,7 +40,7 @@ use std::pin::Pin;
 ///         println!("Hook called: {:?}", input);
 ///
 ///         // Allow execution to continue
-///         Ok(HookOutput::Sync(SyncHookOutput {
+///         Ok(HookOutput::Sync(Box::new(SyncHookOutput {
 ///             continue_: Some(true),
 ///             suppress_output: None,
 ///             stop_reason: None,
@@ -48,7 +48,7 @@ use std::pin::Pin;
 ///             system_message: None,
 ///             reason: None,
 ///             hook_specific_output: None,
-///         }))
+///         })))
 ///     }
 /// }
 /// ```
@@ -253,7 +253,7 @@ pub mod hooks {
 
     /// Create a hook output that allows execution to continue.
     pub fn allow() -> HookOutput {
-        HookOutput::Sync(SyncHookOutput {
+        HookOutput::Sync(Box::new(SyncHookOutput {
             continue_: Some(true),
             suppress_output: None,
             stop_reason: None,
@@ -261,12 +261,12 @@ pub mod hooks {
             system_message: None,
             reason: None,
             hook_specific_output: None,
-        })
+        }))
     }
 
     /// Create a hook output that blocks execution.
     pub fn block(reason: impl Into<String>) -> HookOutput {
-        HookOutput::Sync(SyncHookOutput {
+        HookOutput::Sync(Box::new(SyncHookOutput {
             continue_: Some(false),
             suppress_output: None,
             stop_reason: Some(reason.into()),
@@ -274,12 +274,12 @@ pub mod hooks {
             system_message: None,
             reason: None,
             hook_specific_output: None,
-        })
+        }))
     }
 
     /// Create a hook output that allows with a message to the user.
     pub fn allow_with_message(message: impl Into<String>) -> HookOutput {
-        HookOutput::Sync(SyncHookOutput {
+        HookOutput::Sync(Box::new(SyncHookOutput {
             continue_: Some(true),
             suppress_output: None,
             stop_reason: None,
@@ -287,7 +287,7 @@ pub mod hooks {
             system_message: Some(message.into()),
             reason: None,
             hook_specific_output: None,
-        })
+        }))
     }
 
     /// Create a hook output that defers execution (async).

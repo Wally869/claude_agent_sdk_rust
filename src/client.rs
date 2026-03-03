@@ -132,7 +132,7 @@ impl ClaudeSDKClient {
     /// # #[async_trait]
     /// # impl HookCallback for MyHook {
     /// #     async fn call(&self, _: HookInput, _: Option<String>, _: HookContext) -> claude_agent_sdk::Result<HookOutput> {
-    /// #         Ok(HookOutput::Sync(SyncHookOutput::default()))
+    /// #         Ok(HookOutput::Sync(Box::default()))
     /// #     }
     /// # }
     /// let mut client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
@@ -233,8 +233,8 @@ impl ClaudeSDKClient {
 
         // Group callbacks by event and matcher
         for reg in &self.hook_registrations {
-            let matchers = hooks_by_event.entry(reg.event).or_insert_with(HashMap::new);
-            let callback_ids = matchers.entry(reg.matcher.clone()).or_insert_with(Vec::new);
+            let matchers = hooks_by_event.entry(reg.event).or_default();
+            let callback_ids = matchers.entry(reg.matcher.clone()).or_default();
             callback_ids.push(reg.callback_id.clone());
         }
 

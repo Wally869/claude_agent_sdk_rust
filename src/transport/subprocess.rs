@@ -167,10 +167,10 @@ impl SubprocessTransport {
         };
 
         // Merge sandbox settings
-        if let Some(sandbox) = &options.sandbox {
-            if let Ok(sandbox_value) = serde_json::to_value(sandbox) {
-                settings_obj["sandbox"] = sandbox_value;
-            }
+        if let Some(sandbox) = &options.sandbox
+            && let Ok(sandbox_value) = serde_json::to_value(sandbox)
+        {
+            settings_obj["sandbox"] = sandbox_value;
         }
 
         Some(serde_json::to_string(&settings_obj).unwrap_or_default())
@@ -387,13 +387,12 @@ impl SubprocessTransport {
         }
 
         // Output format → --json-schema
-        if let Some(output_format) = &options.output_format {
-            if output_format.get("type").and_then(|v| v.as_str()) == Some("json_schema") {
-                if let Some(schema) = output_format.get("schema") {
-                    args.push("--json-schema".to_string());
-                    args.push(serde_json::to_string(schema).unwrap_or_default());
-                }
-            }
+        if let Some(output_format) = &options.output_format
+            && output_format.get("type").and_then(|v| v.as_str()) == Some("json_schema")
+            && let Some(schema) = output_format.get("schema")
+        {
+            args.push("--json-schema".to_string());
+            args.push(serde_json::to_string(schema).unwrap_or_default());
         }
 
         // Extra args passthrough
@@ -478,16 +477,15 @@ impl SubprocessTransport {
                 }
 
                 // Check exit code
-                if let Ok(status) = child.wait().await {
-                    if !status.success() {
-                        if let Some(code) = status.code() {
-                            yield Err(ClaudeSDKError::process(
-                                code,
-                                "CLI process exited with error".to_string(),
-                                None,
-                            ));
-                        }
-                    }
+                if let Ok(status) = child.wait().await
+                    && !status.success()
+                    && let Some(code) = status.code()
+                {
+                    yield Err(ClaudeSDKError::process(
+                        code,
+                        "CLI process exited with error".to_string(),
+                        None,
+                    ));
                 }
             }
         }

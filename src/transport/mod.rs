@@ -72,13 +72,12 @@ pub async fn check_claude_version(cli_path: &PathBuf) -> Result<String> {
         if let (Some(current), Some(minimum)) = (
             parse_version(version),
             parse_version(MINIMUM_CLAUDE_VERSION),
-        ) {
-            if current < minimum {
-                eprintln!(
-                    "Warning: Claude Code version {} is below minimum {}",
-                    version, MINIMUM_CLAUDE_VERSION
-                );
-            }
+        ) && current < minimum
+        {
+            eprintln!(
+                "Warning: Claude Code version {} is below minimum {}",
+                version, MINIMUM_CLAUDE_VERSION
+            );
         }
     }
 

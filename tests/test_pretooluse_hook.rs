@@ -136,7 +136,7 @@ async fn test_pretooluse_hook_blocks_execution() {
     eprintln!("Result content: {}", bash_result_content);
     eprintln!("========================================\n");
 
-    if attempts.len() > 0 {
+    if !attempts.is_empty() {
         eprintln!("✓ Hook WAS called for Bash");
     } else {
         eprintln!("✗ Hook was NOT called");

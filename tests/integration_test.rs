@@ -22,7 +22,7 @@ use std::sync::{Arc, Mutex};
 /// Helper to check if CLI is available
 fn check_cli_available() -> bool {
     //std::env::var("ANTHROPIC_API_KEY").is_ok()
-    return true;
+    true
 }
 
 #[tokio::test]

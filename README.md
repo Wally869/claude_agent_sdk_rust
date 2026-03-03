@@ -22,14 +22,25 @@ The Claude Agent SDK enables you to build powerful AI agents using Claude Code's
 
 ## Prerequisites
 
-- **Rust**: 1.70 or higher
+- **Rust**: 1.85 or higher (edition 2024)
 - **Claude Code CLI**: 2.0.0 or higher
-- **Node.js**: Required to install Claude Code
-- **Authentication**: Claude subscription (Pro, Team, or Enterprise) or Anthropic API key
+- **Authentication**: Claude subscription (Pro, Max, Team, or Enterprise) or Anthropic API key
 
 ## Installation
 
 ### 1. Install Claude Code CLI
+
+**Native installer (recommended):**
+
+```bash
+# macOS / Linux
+curl -fsSL https://claude.ai/install.sh | bash
+
+# Windows (PowerShell)
+irm https://claude.ai/install.ps1 | iex
+```
+
+**Alternative (npm):**
 
 ```bash
 npm install -g @anthropic-ai/claude-code
@@ -45,7 +56,7 @@ claude -v
 
 ```toml
 [dependencies]
-claude-agent-sdk = "0.1"
+claude-agent-sdk = "1"
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"
 ```
@@ -433,7 +444,7 @@ match query("test", None).await {
     Ok(messages) => { /* process */ }
     Err(ClaudeSDKError::CLINotFound { path }) => {
         eprintln!("Claude CLI not found at: {:?}", path);
-        eprintln!("Install with: npm install -g @anthropic-ai/claude-code");
+        eprintln!("Install from: https://claude.ai/download");
     }
     Err(ClaudeSDKError::Process { exit_code, message, stderr }) => {
         eprintln!("Process failed (exit {}): {}", exit_code, message);
@@ -577,7 +588,12 @@ Error: Claude Code CLI not found
 
 **Solution**: Install CLI and ensure it's in PATH:
 ```bash
+# Native installer (recommended)
+curl -fsSL https://claude.ai/install.sh | bash
+
+# Or via npm
 npm install -g @anthropic-ai/claude-code
+
 which claude  # Unix/macOS
 where claude  # Windows
 ```

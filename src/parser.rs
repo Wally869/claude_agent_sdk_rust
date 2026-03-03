@@ -13,11 +13,11 @@ const KNOWN_TYPES: &[&str] = &["user", "assistant", "system", "result", "stream_
 /// message types that older SDK versions don't know about.
 pub fn parse_message(value: serde_json::Value) -> Result<Message> {
     // Check if this is a known message type before attempting deserialization
-    if let Some(msg_type) = value.get("type").and_then(|v| v.as_str()) {
-        if !KNOWN_TYPES.contains(&msg_type) {
-            // Skip unknown message types (forward-compatible)
-            return Err(ClaudeSDKError::UnknownMessageType(msg_type.to_string()));
-        }
+    if let Some(msg_type) = value.get("type").and_then(|v| v.as_str())
+        && !KNOWN_TYPES.contains(&msg_type)
+    {
+        // Skip unknown message types (forward-compatible)
+        return Err(ClaudeSDKError::UnknownMessageType(msg_type.to_string()));
     }
 
     serde_json::from_value(value).map_err(|e| ClaudeSDKError::message_parse(e.to_string()))

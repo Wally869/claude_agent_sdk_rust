@@ -348,12 +348,12 @@ pub struct AsyncHookOutput {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum HookOutput {
-    Sync(SyncHookOutput),
+    Sync(Box<SyncHookOutput>),
     Async(AsyncHookOutput),
 }
 
 impl Default for HookOutput {
     fn default() -> Self {
-        HookOutput::Sync(SyncHookOutput::default())
+        HookOutput::Sync(Box::default())
     }
 }

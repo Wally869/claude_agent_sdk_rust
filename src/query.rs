@@ -17,6 +17,9 @@ use tokio::io::AsyncWriteExt;
 use tokio::process::ChildStdin;
 use tokio::sync::{Mutex, mpsc, oneshot};
 
+/// Type alias for the pending control-response map.
+pub type PendingResponses = Arc<Mutex<HashMap<String, oneshot::Sender<Result<Value>>>>>;
+
 /// Type for async hook callback functions.
 pub type HookCallbackFn = Box<
     dyn Fn(
@@ -201,7 +204,7 @@ impl Query {
     /// Handle control response (match to pending request).
     async fn handle_control_response_static(
         msg: Value,
-        pending_responses: &Arc<Mutex<HashMap<String, oneshot::Sender<Result<Value>>>>>,
+        pending_responses: &PendingResponses,
     ) -> Result<()> {
         let request_id = msg["response"]["request_id"].as_str().ok_or_else(|| {
             ClaudeSDKError::message_parse("Missing request_id in control_response")
@@ -399,18 +402,18 @@ impl Query {
         match output {
             HookOutput::Sync(_) => {
                 // Convert continue_ to continue
-                if let Some(obj) = json.as_object_mut() {
-                    if let Some(continue_val) = obj.remove("continue_") {
-                        obj.insert("continue".to_string(), continue_val);
-                    }
+                if let Some(obj) = json.as_object_mut()
+                    && let Some(continue_val) = obj.remove("continue_")
+                {
+                    obj.insert("continue".to_string(), continue_val);
                 }
             }
             HookOutput::Async(_) => {
                 // Convert async_ to async
-                if let Some(obj) = json.as_object_mut() {
-                    if let Some(async_val) = obj.remove("async_") {
-                        obj.insert("async".to_string(), async_val);
-                    }
+                if let Some(obj) = json.as_object_mut()
+                    && let Some(async_val) = obj.remove("async_")
+                {
+                    obj.insert("async".to_string(), async_val);
                 }
             }
         }
@@ -496,7 +499,7 @@ impl QueryHandle {
         Query::write_to_stdin(&self.stdin, &control_str).await?;
 
         // Wait for response with timeout
-        let response = tokio::time::timeout(std::time::Duration::from_secs(60), rx)
+        tokio::time::timeout(std::time::Duration::from_secs(60), rx)
             .await
             .map_err(|_| {
                 ClaudeSDKError::control_timeout(
@@ -504,9 +507,7 @@ impl QueryHandle {
                     request["subtype"].as_str().unwrap_or("unknown").to_string(),
                 )
             })?
-            .map_err(|_| ClaudeSDKError::other("Response channel closed"))?;
-
-        response
+            .map_err(|_| ClaudeSDKError::other("Response channel closed"))?
     }
 
     /// Initialize streaming mode connection.
@@ -617,7 +618,7 @@ mod tests {
     #[test]
     fn test_hook_output_field_conversion() {
         // Test Sync output with continue_
-        let sync_output = HookOutput::Sync(SyncHookOutput {
+        let sync_output = HookOutput::Sync(Box::new(SyncHookOutput {
             continue_: Some(true),
             suppress_output: None,
             stop_reason: None,
@@ -625,7 +626,7 @@ mod tests {
             system_message: None,
             reason: None,
             hook_specific_output: None,
-        });
+        }));
 
         let json = Query::convert_hook_output_for_cli(sync_output).unwrap();
         assert!(json.get("continue").is_some());

@@ -68,27 +68,27 @@ impl PermissionCallback for SafetyChecker {
         println!("\n[Permission] Checking tool: {}", tool_name);
 
         // Block dangerous bash commands
-        if tool_name == "Bash" {
-            if let Some(cmd) = input.get("command").and_then(|v| v.as_str()) {
-                println!("[Permission] Command: {}", cmd);
+        if tool_name == "Bash"
+            && let Some(cmd) = input.get("command").and_then(|v| v.as_str())
+        {
+            println!("[Permission] Command: {}", cmd);
 
-                // List of dangerous patterns
-                let dangerous_patterns = vec![
-                    "rm -rf /",
-                    "rm -rf *",
-                    ":(){ :|:& };:", // fork bomb
-                    "mkfs",
-                    "dd if=/dev/zero",
-                ];
+            // List of dangerous patterns
+            let dangerous_patterns = vec![
+                "rm -rf /",
+                "rm -rf *",
+                ":(){ :|:& };:", // fork bomb
+                "mkfs",
+                "dd if=/dev/zero",
+            ];
 
-                for pattern in dangerous_patterns {
-                    if cmd.contains(pattern) {
-                        println!("[Permission] BLOCKED - Dangerous command detected!");
-                        return Ok(permissions::deny(format!(
-                            "Blocked dangerous command: {}",
-                            pattern
-                        )));
-                    }
+            for pattern in dangerous_patterns {
+                if cmd.contains(pattern) {
+                    println!("[Permission] BLOCKED - Dangerous command detected!");
+                    return Ok(permissions::deny(format!(
+                        "Blocked dangerous command: {}",
+                        pattern
+                    )));
                 }
             }
         }
@@ -111,22 +111,19 @@ impl HookCallback for FileProtector {
         _context: HookContext,
     ) -> Result<HookOutput> {
         // Check if this is a PreToolUse event for Write or Edit
-        if let HookInput::PreToolUse(pre_tool) = &input {
-            if pre_tool.tool_name == "Write" || pre_tool.tool_name == "Edit" {
-                // Check if file path contains sensitive patterns
-                if let Some(file_path) = pre_tool
-                    .tool_input
-                    .get("file_path")
-                    .and_then(|v| v.as_str())
-                {
-                    let sensitive_paths = vec!["Cargo.toml", "package.json", ".env", "credentials"];
+        if let HookInput::PreToolUse(pre_tool) = &input
+            && (pre_tool.tool_name == "Write" || pre_tool.tool_name == "Edit")
+            && let Some(file_path) = pre_tool
+                .tool_input
+                .get("file_path")
+                .and_then(|v| v.as_str())
+        {
+            let sensitive_paths = vec!["Cargo.toml", "package.json", ".env", "credentials"];
 
-                    for pattern in sensitive_paths {
-                        if file_path.contains(pattern) {
-                            println!("\n[FileProtector] Blocking write to: {}", file_path);
-                            return Ok(hooks::block(format!("Protected file: {}", file_path)));
-                        }
-                    }
+            for pattern in sensitive_paths {
+                if file_path.contains(pattern) {
+                    println!("\n[FileProtector] Blocking write to: {}", file_path);
+                    return Ok(hooks::block(format!("Protected file: {}", file_path)));
                 }
             }
         }

@@ -65,13 +65,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if let Some(cost) = result.total_cost_usd {
                     println!("Cost: ${:.4}", cost);
                 }
-                if let Some(usage) = &result.usage {
-                    if let (Some(input), Some(output)) = (
+                if let Some(usage) = &result.usage
+                    && let (Some(input), Some(output)) = (
                         usage.get("input_tokens").and_then(|v| v.as_u64()),
                         usage.get("output_tokens").and_then(|v| v.as_u64()),
-                    ) {
-                        println!("Tokens: {} in, {} out", input, output);
-                    }
+                    )
+                {
+                    println!("Tokens: {} in, {} out", input, output);
                 }
             }
             Message::System(system) => {
