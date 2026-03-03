@@ -5,8 +5,8 @@
 
 use crate::error::Result;
 use crate::types::{
-    HookContext, HookInput, HookOutput, PermissionResult, ToolPermissionContext,
-    SyncHookOutput, AsyncHookOutput,
+    AsyncHookOutput, HookContext, HookInput, HookOutput, PermissionResult, SyncHookOutput,
+    ToolPermissionContext,
 };
 
 use async_trait::async_trait;
@@ -148,7 +148,11 @@ pub trait PermissionCallback: Send + Sync {
 /// the full trait.
 pub struct ClosureHook<F>
 where
-    F: Fn(HookInput, Option<String>, HookContext) -> Pin<Box<dyn Future<Output = Result<HookOutput>> + Send>>
+    F: Fn(
+            HookInput,
+            Option<String>,
+            HookContext,
+        ) -> Pin<Box<dyn Future<Output = Result<HookOutput>> + Send>>
         + Send
         + Sync,
 {
@@ -157,7 +161,11 @@ where
 
 impl<F> ClosureHook<F>
 where
-    F: Fn(HookInput, Option<String>, HookContext) -> Pin<Box<dyn Future<Output = Result<HookOutput>> + Send>>
+    F: Fn(
+            HookInput,
+            Option<String>,
+            HookContext,
+        ) -> Pin<Box<dyn Future<Output = Result<HookOutput>> + Send>>
         + Send
         + Sync,
 {
@@ -170,7 +178,11 @@ where
 #[async_trait]
 impl<F> HookCallback for ClosureHook<F>
 where
-    F: Fn(HookInput, Option<String>, HookContext) -> Pin<Box<dyn Future<Output = Result<HookOutput>> + Send>>
+    F: Fn(
+            HookInput,
+            Option<String>,
+            HookContext,
+        ) -> Pin<Box<dyn Future<Output = Result<HookOutput>> + Send>>
         + Send
         + Sync,
 {
@@ -187,7 +199,11 @@ where
 /// Helper to convert a closure into a PermissionCallback.
 pub struct ClosurePermission<F>
 where
-    F: Fn(String, Value, ToolPermissionContext) -> Pin<Box<dyn Future<Output = Result<PermissionResult>> + Send>>
+    F: Fn(
+            String,
+            Value,
+            ToolPermissionContext,
+        ) -> Pin<Box<dyn Future<Output = Result<PermissionResult>> + Send>>
         + Send
         + Sync,
 {
@@ -196,7 +212,11 @@ where
 
 impl<F> ClosurePermission<F>
 where
-    F: Fn(String, Value, ToolPermissionContext) -> Pin<Box<dyn Future<Output = Result<PermissionResult>> + Send>>
+    F: Fn(
+            String,
+            Value,
+            ToolPermissionContext,
+        ) -> Pin<Box<dyn Future<Output = Result<PermissionResult>> + Send>>
         + Send
         + Sync,
 {
@@ -209,7 +229,11 @@ where
 #[async_trait]
 impl<F> PermissionCallback for ClosurePermission<F>
 where
-    F: Fn(String, Value, ToolPermissionContext) -> Pin<Box<dyn Future<Output = Result<PermissionResult>> + Send>>
+    F: Fn(
+            String,
+            Value,
+            ToolPermissionContext,
+        ) -> Pin<Box<dyn Future<Output = Result<PermissionResult>> + Send>>
         + Send
         + Sync,
 {

@@ -29,10 +29,10 @@ pub use content::{ContentBlock, TextBlock, ThinkingBlock, ToolResultBlock, ToolU
 pub use control::{ControlRequest, HookMatcherConfig, SDKControlRequest, SDKControlResponse};
 pub use hooks::{
     AsyncHookOutput, HookContext, HookEvent, HookInput, HookMatcher, HookOutput,
-    NotificationHookInput, PostToolUseFailureHookInput, PostToolUseHookInput,
-    PreToolUseHookInput, SubagentStartHookInput, SubagentStopHookInput, SyncHookOutput,
+    NotificationHookInput, PostToolUseFailureHookInput, PostToolUseHookInput, PreToolUseHookInput,
+    SubagentStartHookInput, SubagentStopHookInput, SyncHookOutput,
 };
-pub use mcp::{McpHttpConfig, McpServerConfig, McpSdkServerConfig, McpSseConfig, McpStdioConfig};
+pub use mcp::{McpHttpConfig, McpSdkServerConfig, McpServerConfig, McpSseConfig, McpStdioConfig};
 pub use messages::{
     AssistantMessage, Message, MessageContent, ResultMessage, StreamEvent, SystemMessage,
     UserMessage,

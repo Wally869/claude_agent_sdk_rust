@@ -69,9 +69,10 @@ pub async fn check_claude_version(cli_path: &PathBuf) -> Result<String> {
                 .collect::<Option<Vec<u32>>>()
         };
 
-        if let (Some(current), Some(minimum)) =
-            (parse_version(version), parse_version(MINIMUM_CLAUDE_VERSION))
-        {
+        if let (Some(current), Some(minimum)) = (
+            parse_version(version),
+            parse_version(MINIMUM_CLAUDE_VERSION),
+        ) {
             if current < minimum {
                 eprintln!(
                     "Warning: Claude Code version {} is below minimum {}",

@@ -5,30 +5,36 @@
 
 use crate::error::{ClaudeSDKError, Result};
 use crate::transport::subprocess::SubprocessTransport;
-use crate::types::{
-    HookInput, HookOutput, PermissionResult, ToolPermissionContext, HookContext,
-};
+use crate::types::{HookContext, HookInput, HookOutput, PermissionResult, ToolPermissionContext};
 
 use futures::Stream;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 use tokio::io::AsyncWriteExt;
 use tokio::process::ChildStdin;
-use tokio::sync::{mpsc, oneshot, Mutex};
+use tokio::sync::{Mutex, mpsc, oneshot};
 
 /// Type for async hook callback functions.
 pub type HookCallbackFn = Box<
-    dyn Fn(HookInput, Option<String>, HookContext) -> Pin<Box<dyn Future<Output = Result<HookOutput>> + Send>>
+    dyn Fn(
+            HookInput,
+            Option<String>,
+            HookContext,
+        ) -> Pin<Box<dyn Future<Output = Result<HookOutput>> + Send>>
         + Send
         + Sync,
 >;
 
 /// Type for permission callback functions.
 pub type CanUseToolFn = Box<
-    dyn Fn(String, Value, ToolPermissionContext) -> Pin<Box<dyn Future<Output = Result<PermissionResult>> + Send>>
+    dyn Fn(
+            String,
+            Value,
+            ToolPermissionContext,
+        ) -> Pin<Box<dyn Future<Output = Result<PermissionResult>> + Send>>
         + Send
         + Sync,
 >;
@@ -134,8 +140,10 @@ impl Query {
                                 // Handle control response
                                 if let Err(e) = Self::handle_control_response_static(
                                     msg,
-                                    &pending_responses_task
-                                ).await {
+                                    &pending_responses_task,
+                                )
+                                .await
+                                {
                                     eprintln!("Error handling control response: {}", e);
                                 }
                             }
@@ -145,14 +153,18 @@ impl Query {
                                     msg,
                                     &hook_callbacks_task,
                                     &can_use_tool_callback_task,
-                                    &stdin_task
-                                ).await {
+                                    &stdin_task,
+                                )
+                                .await
+                                {
                                     eprintln!("Error handling control request: {}", e);
                                 }
                             }
                             _ => {
                                 // Extract session ID if present (from result, stream_event, or assistant messages)
-                                if let Some(session_id) = msg.get("session_id").and_then(|v| v.as_str()) {
+                                if let Some(session_id) =
+                                    msg.get("session_id").and_then(|v| v.as_str())
+                                {
                                     // Try to set session ID (only succeeds once, subsequent calls ignored)
                                     let _ = current_session_id_task.set(session_id.to_string());
                                 }
@@ -191,18 +203,16 @@ impl Query {
         msg: Value,
         pending_responses: &Arc<Mutex<HashMap<String, oneshot::Sender<Result<Value>>>>>,
     ) -> Result<()> {
-        let request_id = msg["response"]["request_id"]
-            .as_str()
-            .ok_or_else(|| ClaudeSDKError::message_parse("Missing request_id in control_response"))?;
+        let request_id = msg["response"]["request_id"].as_str().ok_or_else(|| {
+            ClaudeSDKError::message_parse("Missing request_id in control_response")
+        })?;
 
         let mut pending = pending_responses.lock().await;
         if let Some(tx) = pending.remove(request_id) {
             let subtype = msg["response"]["subtype"].as_str();
 
             if subtype == Some("error") {
-                let error_msg = msg["response"]["error"]
-                    .as_str()
-                    .unwrap_or("Unknown error");
+                let error_msg = msg["response"]["error"].as_str().unwrap_or("Unknown error");
                 let _ = tx.send(Err(ClaudeSDKError::other(error_msg)));
             } else {
                 let response = msg["response"]["response"].clone();
@@ -232,9 +242,7 @@ impl Query {
 
         // Execute appropriate handler
         let response_result: Result<Value> = match subtype {
-            "hook_callback" => {
-                Self::handle_hook_callback(request.clone(), hook_callbacks).await
-            }
+            "hook_callback" => Self::handle_hook_callback(request.clone(), hook_callbacks).await,
             "can_use_tool" => {
                 Self::handle_can_use_tool(request.clone(), can_use_tool_callback).await
             }
@@ -242,9 +250,10 @@ impl Query {
                 // MCP bridging not yet implemented
                 Err(ClaudeSDKError::other("MCP bridging not yet implemented"))
             }
-            _ => {
-                Err(ClaudeSDKError::message_parse(format!("Unknown control request subtype: {}", subtype)))
-            }
+            _ => Err(ClaudeSDKError::message_parse(format!(
+                "Unknown control request subtype: {}",
+                subtype
+            ))),
         };
 
         // Send control response back
@@ -281,7 +290,8 @@ impl Query {
     /// Write data to stdin.
     async fn write_to_stdin(stdin: &Arc<Mutex<Option<ChildStdin>>>, data: &str) -> Result<()> {
         let mut stdin_guard = stdin.lock().await;
-        let stdin_ref = stdin_guard.as_mut()
+        let stdin_ref = stdin_guard
+            .as_mut()
             .ok_or(ClaudeSDKError::TransportNotReady)?;
 
         stdin_ref.write_all(data.as_bytes()).await?;
@@ -300,7 +310,8 @@ impl Query {
             .as_str()
             .ok_or_else(|| ClaudeSDKError::message_parse("Missing callback_id"))?;
 
-        let callback = hook_callbacks.get(callback_id)
+        let callback = hook_callbacks
+            .get(callback_id)
             .ok_or_else(|| ClaudeSDKError::HookNotFound(callback_id.to_string()))?;
 
         // Parse hook input
@@ -322,7 +333,8 @@ impl Query {
         request: Value,
         can_use_tool_callback: &Arc<Option<Arc<CanUseToolFn>>>,
     ) -> Result<Value> {
-        let callback = can_use_tool_callback.as_ref()
+        let callback = can_use_tool_callback
+            .as_ref()
             .as_ref()
             .ok_or(ClaudeSDKError::PermissionCallbackNotSet)?;
 
@@ -484,13 +496,15 @@ impl QueryHandle {
         Query::write_to_stdin(&self.stdin, &control_str).await?;
 
         // Wait for response with timeout
-        let response = tokio::time::timeout(
-            std::time::Duration::from_secs(60),
-            rx
-        )
-        .await
-        .map_err(|_| ClaudeSDKError::control_timeout(60, request["subtype"].as_str().unwrap_or("unknown").to_string()))?
-        .map_err(|_| ClaudeSDKError::other("Response channel closed"))?;
+        let response = tokio::time::timeout(std::time::Duration::from_secs(60), rx)
+            .await
+            .map_err(|_| {
+                ClaudeSDKError::control_timeout(
+                    60,
+                    request["subtype"].as_str().unwrap_or("unknown").to_string(),
+                )
+            })?
+            .map_err(|_| ClaudeSDKError::other("Response channel closed"))?;
 
         response
     }
@@ -598,7 +612,7 @@ impl QueryHandle {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{SyncHookOutput, AsyncHookOutput};
+    use crate::types::{AsyncHookOutput, SyncHookOutput};
 
     #[test]
     fn test_hook_output_field_conversion() {

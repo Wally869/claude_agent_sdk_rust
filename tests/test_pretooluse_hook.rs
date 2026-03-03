@@ -1,11 +1,11 @@
 //! Test to verify if PreToolUse hooks can prevent tool execution.
 
+use async_trait::async_trait;
 use claude_agent_sdk::{
-    callbacks::{hooks, HookCallback},
     ClaudeAgentOptions, ClaudeSDKClient, Message,
+    callbacks::{HookCallback, hooks},
     types::{HookContext, HookEvent, HookInput, HookOutput},
 };
-use async_trait::async_trait;
 use futures::StreamExt;
 use std::sync::{Arc, Mutex};
 
@@ -28,7 +28,9 @@ impl HookCallback for BlockBashHook {
                 eprintln!("[HOOK] Input: {:?}", pre_tool.tool_input);
 
                 if pre_tool.tool_name == "Bash" {
-                    let command = pre_tool.tool_input.get("command")
+                    let command = pre_tool
+                        .tool_input
+                        .get("command")
                         .and_then(|v| v.as_str())
                         .unwrap_or("unknown");
 

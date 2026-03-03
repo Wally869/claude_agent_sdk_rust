@@ -103,9 +103,7 @@ pub enum ControlRequest {
         message: serde_json::Value,
     },
     /// Rewind tracked files to a specific user message checkpoint.
-    RewindFiles {
-        user_message_id: String,
-    },
+    RewindFiles { user_message_id: String },
     /// Query MCP server connection status.
     McpStatus,
 }

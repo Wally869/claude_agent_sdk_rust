@@ -72,7 +72,11 @@ impl SubprocessTransport {
 
         let mut cmd = Command::new(&self.cli_path);
         cmd.args(&args)
-            .stdin(if self.streaming_mode { Stdio::piped() } else { Stdio::null() })
+            .stdin(if self.streaming_mode {
+                Stdio::piped()
+            } else {
+                Stdio::null()
+            })
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
@@ -99,7 +103,8 @@ impl SubprocessTransport {
         // Set user if provided
         // Note: user parameter is passed via CLI, not env var on Unix
 
-        let mut child = cmd.spawn()
+        let mut child = cmd
+            .spawn()
             .map_err(|e| ClaudeSDKError::connection(format!("Failed to spawn CLI: {}", e)))?;
 
         // In streaming mode, capture stdin
@@ -408,7 +413,9 @@ impl SubprocessTransport {
 
     /// Write a message to stdin (for streaming mode).
     pub async fn write(&mut self, data: &str) -> Result<()> {
-        let stdin = self.stdin.as_mut()
+        let stdin = self
+            .stdin
+            .as_mut()
             .ok_or(ClaudeSDKError::TransportNotReady)?;
 
         stdin.write_all(data.as_bytes()).await?;

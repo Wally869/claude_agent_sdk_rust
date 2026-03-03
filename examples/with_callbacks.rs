@@ -6,13 +6,14 @@
 //! - Control tool usage with permission callbacks
 //! - Monitor agent behavior with hook callbacks
 
-use claude_agent_sdk::{
-    callbacks::{hooks, permissions, HookCallback, PermissionCallback},
-    ClaudeAgentOptions, ClaudeSDKClient, Message,
-    types::{HookContext, HookEvent, HookInput, HookOutput, PermissionResult, ToolPermissionContext},
-    Result,
-};
 use async_trait::async_trait;
+use claude_agent_sdk::{
+    ClaudeAgentOptions, ClaudeSDKClient, Message, Result,
+    callbacks::{HookCallback, PermissionCallback, hooks, permissions},
+    types::{
+        HookContext, HookEvent, HookInput, HookOutput, PermissionResult, ToolPermissionContext,
+    },
+};
 use futures::StreamExt;
 use serde_json::Value;
 
@@ -75,7 +76,7 @@ impl PermissionCallback for SafetyChecker {
                 let dangerous_patterns = vec![
                     "rm -rf /",
                     "rm -rf *",
-                    ":(){ :|:& };:",  // fork bomb
+                    ":(){ :|:& };:", // fork bomb
                     "mkfs",
                     "dd if=/dev/zero",
                 ];
@@ -83,9 +84,10 @@ impl PermissionCallback for SafetyChecker {
                 for pattern in dangerous_patterns {
                     if cmd.contains(pattern) {
                         println!("[Permission] BLOCKED - Dangerous command detected!");
-                        return Ok(permissions::deny(
-                            format!("Blocked dangerous command: {}", pattern)
-                        ));
+                        return Ok(permissions::deny(format!(
+                            "Blocked dangerous command: {}",
+                            pattern
+                        )));
                     }
                 }
             }
@@ -112,20 +114,17 @@ impl HookCallback for FileProtector {
         if let HookInput::PreToolUse(pre_tool) = &input {
             if pre_tool.tool_name == "Write" || pre_tool.tool_name == "Edit" {
                 // Check if file path contains sensitive patterns
-                if let Some(file_path) = pre_tool.tool_input.get("file_path").and_then(|v| v.as_str()) {
-                    let sensitive_paths = vec![
-                        "Cargo.toml",
-                        "package.json",
-                        ".env",
-                        "credentials",
-                    ];
+                if let Some(file_path) = pre_tool
+                    .tool_input
+                    .get("file_path")
+                    .and_then(|v| v.as_str())
+                {
+                    let sensitive_paths = vec!["Cargo.toml", "package.json", ".env", "credentials"];
 
                     for pattern in sensitive_paths {
                         if file_path.contains(pattern) {
                             println!("\n[FileProtector] Blocking write to: {}", file_path);
-                            return Ok(hooks::block(
-                                format!("Protected file: {}", file_path)
-                            ));
+                            return Ok(hooks::block(format!("Protected file: {}", file_path)));
                         }
                     }
                 }
@@ -141,9 +140,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     println!("=== Claude Agent SDK - Callbacks Example ===\n");
 
     // Create options
-    let options = ClaudeAgentOptions::builder()
-        .max_turns(3)
-        .build();
+    let options = ClaudeAgentOptions::builder().max_turns(3).build();
 
     // Create client
     let mut client = ClaudeSDKClient::new(options);
@@ -153,14 +150,14 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 
     let logger_id = client.register_hook(
         HookEvent::PreToolUse,
-        None,  // Match all tools
+        None, // Match all tools
         ToolLogger,
     );
     println!("  - Tool logger registered: {}", logger_id);
 
     let protector_id = client.register_hook(
         HookEvent::PreToolUse,
-        Some("Write|Edit"),  // Only match Write and Edit tools
+        Some("Write|Edit"), // Only match Write and Edit tools
         FileProtector,
     );
     println!("  - File protector registered: {}", protector_id);

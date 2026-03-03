@@ -4,8 +4,7 @@
 //! tools option, and the interactive client's get_mcp_status().
 
 use claude_agent_sdk::{
-    ClaudeAgentOptions, ClaudeSDKClient, Effort, Message, Result, ThinkingConfig,
-    query,
+    ClaudeAgentOptions, ClaudeSDKClient, Effort, Message, Result, ThinkingConfig, query,
 };
 use futures::StreamExt;
 
@@ -24,7 +23,10 @@ async fn print_response(
                 println!();
             }
             Ok(Message::Result(result)) => {
-                println!("  Duration: {}ms | Turns: {}", result.duration_ms, result.num_turns);
+                println!(
+                    "  Duration: {}ms | Turns: {}",
+                    result.duration_ms, result.num_turns
+                );
                 if let Some(cost) = result.total_cost_usd {
                     println!("  Cost: ${:.4}", cost);
                 }
@@ -101,7 +103,8 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         let stream = query(
             "What is the capital and population of Japan?",
             Some(options),
-        ).await?;
+        )
+        .await?;
         let mut stream = Box::pin(stream);
         print_response(&mut stream).await;
     }
@@ -110,9 +113,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     // ─── 4. Interactive client: get_mcp_status ───
     println!("--- 4. Interactive client: MCP status ---");
     {
-        let options = ClaudeAgentOptions::builder()
-            .max_turns(1u32)
-            .build();
+        let options = ClaudeAgentOptions::builder().max_turns(1u32).build();
         let mut client = ClaudeSDKClient::new(options);
         client.connect(None).await?;
 

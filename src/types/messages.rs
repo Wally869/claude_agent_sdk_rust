@@ -1,7 +1,7 @@
 //! Message types for Claude Agent SDK.
 
-use serde::{Deserialize, Serialize};
 use super::content::ContentBlock;
+use serde::{Deserialize, Serialize};
 
 /// A message in the conversation.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
