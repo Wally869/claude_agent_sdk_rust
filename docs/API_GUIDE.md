@@ -808,28 +808,31 @@ impl HookCallback for FastHook {
 ### CLI Not Found
 
 ```bash
-# Install Claude Code CLI
-# Visit: https://claude.com/claude-code
+# Install Claude Code CLI (native installer, recommended)
+curl -fsSL https://claude.ai/install.sh | bash
 
-# Or set custom path
-export CLAUDE_CLI_PATH=/path/to/claude
+# Or via npm
+npm install -g @anthropic-ai/claude-code
+
+# Or set custom path in your options
+# .cli_path(Some("/path/to/claude".into()))
 ```
 
 ### Authentication Required
 
 ```bash
-# Authenticate with Claude
-claude auth login
+# Run claude and follow the browser login prompt
+claude
+
+# Or set an API key
+export ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
 ### Version Mismatch
 
 ```bash
-# Check CLI version (requires 0.2.0+)
+# Check CLI version (requires 2.0.0+)
 claude --version
-
-# Skip version check
-export CLAUDE_AGENT_SDK_SKIP_VERSION_CHECK=1
 ```
 
 ## Further Reading
@@ -837,9 +840,9 @@ export CLAUDE_AGENT_SDK_SKIP_VERSION_CHECK=1
 - [README.md](../README.md) - Installation and setup
 - [examples/](../examples/) - Complete working examples
 - [Rust API Documentation](https://docs.rs/claude-agent-sdk) - Full API reference (once published)
-- [Claude Code Documentation](https://docs.claude.com/claude-code) - CLI documentation
+- [Claude Code Documentation](https://code.claude.com/docs) - CLI documentation
 
 ## Support
 
 - GitHub Issues: https://github.com/Wally869/claude-agent-sdk-rust/issues
-- Claude Code: https://claude.com/claude-code
+- Claude Code: https://code.claude.com
