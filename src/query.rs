@@ -556,6 +556,26 @@ impl QueryHandle {
         Ok(())
     }
 
+    /// Rewind tracked files to their state at a specific user message.
+    pub async fn rewind_files(&self, user_message_id: &str) -> Result<()> {
+        let request = json!({
+            "subtype": "rewind_files",
+            "user_message_id": user_message_id
+        });
+
+        self.send_control_request(request).await?;
+        Ok(())
+    }
+
+    /// Get current MCP server connection status.
+    pub async fn get_mcp_status(&self) -> Result<Value> {
+        let request = json!({
+            "subtype": "mcp_status"
+        });
+
+        self.send_control_request(request).await
+    }
+
     /// Send a user message to CLI.
     pub async fn send_user_message(&self, prompt: &str) -> Result<()> {
         let message = json!({
@@ -570,6 +590,16 @@ impl QueryHandle {
         Query::write_to_stdin(&self.stdin, &message_str).await?;
 
         Ok(())
+    }
+
+    /// Close stdin to signal no more input.
+    ///
+    /// Used in one-shot query mode after sending the prompt to tell the CLI
+    /// that no more messages are coming.
+    pub async fn close_stdin(&self) {
+        let mut stdin_guard = self.stdin.lock().await;
+        // Drop the stdin handle to close the pipe
+        *stdin_guard = None;
     }
 }
 

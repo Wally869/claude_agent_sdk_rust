@@ -415,6 +415,7 @@ impl ClaudeSDKClient {
                     Ok(value) => {
                         match parser::parse_message(value) {
                             Ok(message) => yield Ok(message),
+                            Err(ClaudeSDKError::UnknownMessageType(_)) => continue,
                             Err(e) => yield Err(e),
                         }
                     }
@@ -483,6 +484,7 @@ impl ClaudeSDKClient {
                                     break;
                                 }
                             }
+                            Err(ClaudeSDKError::UnknownMessageType(_)) => continue,
                             Err(e) => {
                                 yield Err(e);
                                 break;
@@ -584,6 +586,46 @@ impl ClaudeSDKClient {
             .ok_or(ClaudeSDKError::NotConnected)?;
 
         query_handle.set_model(model).await
+    }
+
+    /// Rewind tracked files to their state at a specific user message.
+    ///
+    /// Requires `enable_file_checkpointing: true` in options to track file changes,
+    /// and `extra_args: {"replay-user-messages": None}` to receive UserMessage objects
+    /// with `uuid` in the response stream.
+    ///
+    /// # Arguments
+    ///
+    /// * `user_message_id` - UUID of the user message to rewind to
+    ///
+    /// # Errors
+    ///
+    /// Returns error if not connected or request fails.
+    pub async fn rewind_files(&self, user_message_id: &str) -> Result<()> {
+        let query_handle = self.query_handle.as_ref()
+            .ok_or(ClaudeSDKError::NotConnected)?;
+
+        query_handle.rewind_files(user_message_id).await
+    }
+
+    /// Get current MCP server connection status.
+    ///
+    /// Queries the Claude Code CLI for the live connection status of all
+    /// configured MCP servers.
+    ///
+    /// # Returns
+    ///
+    /// JSON value with MCP server status information containing a
+    /// `mcpServers` key with a list of server status objects.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if not connected or request fails.
+    pub async fn get_mcp_status(&self) -> Result<serde_json::Value> {
+        let query_handle = self.query_handle.as_ref()
+            .ok_or(ClaudeSDKError::NotConnected)?;
+
+        query_handle.get_mcp_status().await
     }
 
     /// Get server information from initialization.

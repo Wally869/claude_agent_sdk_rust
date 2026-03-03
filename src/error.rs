@@ -92,6 +92,10 @@ pub enum ClaudeSDKError {
     #[error("Parse error: {0}")]
     ParseError(String),
 
+    /// Unknown message type from CLI (forward-compatible skip).
+    #[error("Unknown message type: {0}")]
+    UnknownMessageType(String),
+
     /// Generic error with a custom message.
     #[error("{0}")]
     Other(String),

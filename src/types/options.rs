@@ -5,12 +5,74 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use typed_builder::TypedBuilder;
 
-use super::{agents::{AgentDefinition, SettingSource}, mcp::McpServerConfig};
+use super::agents::{AgentDefinition, SettingSource};
+use super::mcp::McpServerConfig;
+use super::plugins::SdkPluginConfig;
+use super::sandbox::SandboxSettings;
+
+/// Base set of tools configuration.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(untagged)]
+pub enum ToolsOption {
+    /// Explicit list of tool names.
+    List(Vec<String>),
+    /// Preset tool configuration.
+    Preset(ToolsPreset),
+}
+
+/// Tools preset configuration.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ToolsPreset {
+    /// Type (always "preset").
+    #[serde(rename = "type")]
+    pub preset_type: String,
+    /// Preset name (e.g., "claude_code").
+    pub preset: String,
+}
+
+/// Thinking configuration for extended thinking.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum ThinkingConfig {
+    /// Adaptive thinking (model decides depth).
+    Adaptive,
+    /// Enabled with specific budget.
+    Enabled {
+        /// Maximum tokens for thinking.
+        budget_tokens: u32,
+    },
+    /// Thinking disabled.
+    Disabled,
+}
+
+/// Effort level for thinking depth.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum Effort {
+    Low,
+    Medium,
+    High,
+    Max,
+}
+
+impl std::fmt::Display for Effort {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Effort::Low => write!(f, "low"),
+            Effort::Medium => write!(f, "medium"),
+            Effort::High => write!(f, "high"),
+            Effort::Max => write!(f, "max"),
+        }
+    }
+}
 
 /// Configuration options for Claude Agent queries and clients.
 #[derive(Debug, Clone, TypedBuilder, Default)]
 #[builder(field_defaults(default, setter(into)))]
 pub struct ClaudeAgentOptions {
+    /// Base set of tools (list of names or preset).
+    pub tools: Option<ToolsOption>,
+
     /// Tools that Claude is allowed to use.
     pub allowed_tools: Vec<String>,
 
@@ -30,8 +92,18 @@ pub struct ClaudeAgentOptions {
     /// Maximum number of conversation turns.
     pub max_turns: Option<u32>,
 
+    /// Maximum budget in USD.
+    pub max_budget_usd: Option<f64>,
+
     /// Model to use (overrides default).
     pub model: Option<String>,
+
+    /// Fallback model if primary is unavailable.
+    pub fallback_model: Option<String>,
+
+    /// Beta features to enable.
+    #[builder(default)]
+    pub betas: Vec<String>,
 
     /// Tool to use for permission prompts (internal).
     pub permission_prompt_tool_name: Option<String>,
@@ -42,7 +114,7 @@ pub struct ClaudeAgentOptions {
     /// Custom path to Claude Code CLI binary.
     pub cli_path: Option<PathBuf>,
 
-    /// Path to settings file.
+    /// Path to settings file or JSON string.
     pub settings: Option<String>,
 
     /// Additional directories to add for context.
@@ -83,6 +155,34 @@ pub struct ClaudeAgentOptions {
 
     /// Custom agent definitions.
     pub agents: Option<HashMap<String, AgentDefinition>>,
+
+    /// Plugin configurations.
+    #[builder(default)]
+    pub plugins: Vec<SdkPluginConfig>,
+
+    /// Sandbox configuration for bash command isolation.
+    pub sandbox: Option<SandboxSettings>,
+
+    /// Max tokens for thinking blocks.
+    /// @deprecated Use `thinking` instead.
+    pub max_thinking_tokens: Option<u32>,
+
+    /// Controls extended thinking behavior. Takes precedence over max_thinking_tokens.
+    pub thinking: Option<ThinkingConfig>,
+
+    /// Effort level for thinking depth.
+    pub effort: Option<Effort>,
+
+    /// Output format for structured outputs (matches Messages API structure).
+    /// Example: `{"type": "json_schema", "schema": {"type": "object", "properties": {...}}}`
+    pub output_format: Option<serde_json::Value>,
+
+    /// Enable file checkpointing to track file changes during the session.
+    #[builder(default)]
+    pub enable_file_checkpointing: bool,
+
+    /// User parameter passed to the CLI process.
+    pub user: Option<String>,
 }
 
 /// System prompt configuration.

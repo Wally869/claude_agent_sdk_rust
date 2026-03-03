@@ -34,9 +34,15 @@ pub enum MessageContent {
 pub struct UserMessage {
     /// The message content.
     pub message: UserMessageInner,
+    /// Unique message identifier.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uuid: Option<String>,
     /// Parent tool use ID (for subagents).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parent_tool_use_id: Option<String>,
+    /// Tool use result data.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_use_result: Option<serde_json::Value>,
 }
 
 /// Inner structure of user message.
@@ -59,6 +65,9 @@ pub struct AssistantMessage {
     /// Session ID.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub session_id: Option<String>,
+    /// Error type (e.g., "rate_limit", "server_error").
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
 }
 
 /// Inner structure of assistant message.
@@ -122,6 +131,9 @@ pub struct ResultMessage {
     /// Result text.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub result: Option<String>,
+    /// Structured output (when output_format is configured).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub structured_output: Option<serde_json::Value>,
 }
 
 /// Streaming event for partial message updates.

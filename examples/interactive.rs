@@ -17,7 +17,10 @@ async fn main() -> Result<()> {
 
     // Get server info
     if let Some(info) = client.get_server_info().await? {
-        println!("Server info: {:?}\n", info);
+        if let Some(style) = info.get("output_style").and_then(|v| v.as_str()) {
+            println!("Output style: {}", style);
+        }
+        println!("Server initialized.\n");
     }
 
     // First query

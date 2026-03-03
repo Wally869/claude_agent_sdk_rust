@@ -9,6 +9,8 @@ pub enum HookEvent {
     PreToolUse,
     /// After tool execution.
     PostToolUse,
+    /// After tool execution failure.
+    PostToolUseFailure,
     /// When user submits a prompt.
     UserPromptSubmit,
     /// When agent loop stops.
@@ -17,6 +19,12 @@ pub enum HookEvent {
     SubagentStop,
     /// Before context compaction.
     PreCompact,
+    /// When a notification is sent.
+    Notification,
+    /// When a subagent starts.
+    SubagentStart,
+    /// When a permission request is made.
+    PermissionRequest,
 }
 
 /// Hook matcher configuration.
@@ -51,6 +59,8 @@ pub struct PreToolUseHookInput {
     pub tool_name: String,
     /// Tool input parameters.
     pub tool_input: serde_json::Value,
+    /// Tool use identifier.
+    pub tool_use_id: String,
 }
 
 /// Input for PostToolUse hook.
@@ -66,6 +76,28 @@ pub struct PostToolUseHookInput {
     pub tool_input: serde_json::Value,
     /// Tool execution result.
     pub tool_response: serde_json::Value,
+    /// Tool use identifier.
+    pub tool_use_id: String,
+}
+
+/// Input for PostToolUseFailure hook.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PostToolUseFailureHookInput {
+    #[serde(flatten)]
+    pub base: BaseHookInput,
+    /// Hook event name.
+    pub hook_event_name: String, // "PostToolUseFailure"
+    /// Tool that failed.
+    pub tool_name: String,
+    /// Tool input parameters.
+    pub tool_input: serde_json::Value,
+    /// Tool use identifier.
+    pub tool_use_id: String,
+    /// Error message.
+    pub error: String,
+    /// Whether this was an interrupt.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_interrupt: Option<bool>,
 }
 
 /// Input for UserPromptSubmit hook.
@@ -99,6 +131,12 @@ pub struct SubagentStopHookInput {
     pub hook_event_name: String, // "SubagentStop"
     /// Whether stop hook is active.
     pub stop_hook_active: bool,
+    /// Agent identifier.
+    pub agent_id: String,
+    /// Path to agent's transcript.
+    pub agent_transcript_path: String,
+    /// Type of the subagent.
+    pub agent_type: String,
 }
 
 /// Input for PreCompact hook.
@@ -115,16 +153,65 @@ pub struct PreCompactHookInput {
     pub custom_instructions: Option<String>,
 }
 
+/// Input for Notification hook.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NotificationHookInput {
+    #[serde(flatten)]
+    pub base: BaseHookInput,
+    /// Hook event name.
+    pub hook_event_name: String, // "Notification"
+    /// Notification message.
+    pub message: String,
+    /// Optional title.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// Notification type.
+    pub notification_type: String,
+}
+
+/// Input for SubagentStart hook.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SubagentStartHookInput {
+    #[serde(flatten)]
+    pub base: BaseHookInput,
+    /// Hook event name.
+    pub hook_event_name: String, // "SubagentStart"
+    /// Agent identifier.
+    pub agent_id: String,
+    /// Type of the subagent.
+    pub agent_type: String,
+}
+
+/// Input for PermissionRequest hook.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PermissionRequestHookInput {
+    #[serde(flatten)]
+    pub base: BaseHookInput,
+    /// Hook event name.
+    pub hook_event_name: String, // "PermissionRequest"
+    /// Tool requesting permission.
+    pub tool_name: String,
+    /// Tool input parameters.
+    pub tool_input: serde_json::Value,
+    /// Permission suggestions from CLI.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub permission_suggestions: Option<Vec<serde_json::Value>>,
+}
+
 /// Hook input (discriminated union).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum HookInput {
     PreToolUse(PreToolUseHookInput),
     PostToolUse(PostToolUseHookInput),
+    PostToolUseFailure(PostToolUseFailureHookInput),
     UserPromptSubmit(UserPromptSubmitHookInput),
     Stop(StopHookInput),
     SubagentStop(SubagentStopHookInput),
     PreCompact(PreCompactHookInput),
+    Notification(NotificationHookInput),
+    SubagentStart(SubagentStartHookInput),
+    PermissionRequest(PermissionRequestHookInput),
 }
 
 /// Hook context provided to callbacks.
@@ -167,7 +254,11 @@ pub struct SyncHookOutput {
 pub enum HookSpecificOutput {
     PreToolUse(PreToolUseHookSpecificOutput),
     PostToolUse(PostToolUseHookSpecificOutput),
+    PostToolUseFailure(PostToolUseFailureHookSpecificOutput),
     UserPromptSubmit(UserPromptSubmitHookSpecificOutput),
+    Notification(NotificationHookSpecificOutput),
+    SubagentStart(SubagentStartHookSpecificOutput),
+    PermissionRequest(PermissionRequestHookSpecificOutput),
 }
 
 /// PreToolUse-specific output.
@@ -181,6 +272,8 @@ pub struct PreToolUseHookSpecificOutput {
     pub permission_decision_reason: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_input: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_context: Option<String>,
 }
 
 /// PostToolUse-specific output.
@@ -188,6 +281,17 @@ pub struct PreToolUseHookSpecificOutput {
 #[serde(rename_all = "camelCase")]
 pub struct PostToolUseHookSpecificOutput {
     pub hook_event_name: String, // "PostToolUse"
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_context: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_mcp_tool_output: Option<serde_json::Value>,
+}
+
+/// PostToolUseFailure-specific output.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PostToolUseFailureHookSpecificOutput {
+    pub hook_event_name: String, // "PostToolUseFailure"
     #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_context: Option<String>,
 }
@@ -199,6 +303,33 @@ pub struct UserPromptSubmitHookSpecificOutput {
     pub hook_event_name: String, // "UserPromptSubmit"
     #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_context: Option<String>,
+}
+
+/// Notification-specific output.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationHookSpecificOutput {
+    pub hook_event_name: String, // "Notification"
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_context: Option<String>,
+}
+
+/// SubagentStart-specific output.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubagentStartHookSpecificOutput {
+    pub hook_event_name: String, // "SubagentStart"
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_context: Option<String>,
+}
+
+/// PermissionRequest-specific output.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PermissionRequestHookSpecificOutput {
+    pub hook_event_name: String, // "PermissionRequest"
+    /// Decision object for permission handling.
+    pub decision: serde_json::Value,
 }
 
 /// Async hook output (for deferred execution).
