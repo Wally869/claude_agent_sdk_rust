@@ -46,10 +46,11 @@ struct HookRegistration {
 ///     client.query("What is 2 + 2?").await?;
 ///
 ///     // Receive the response
-///     let mut messages = client.receive_response()?;
+///     let mut messages = Box::pin(client.receive_response()?);
 ///     while let Some(msg) = messages.next().await {
 ///         println!("{:?}", msg?);
 ///     }
+///     drop(messages);
 ///
 ///     // Disconnect
 ///     client.disconnect().await?;
@@ -394,7 +395,7 @@ impl ClaudeSDKClient {
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// # let mut client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
     /// # client.connect(None).await?;
-    /// let mut messages = client.receive_messages()?;
+    /// let mut messages = Box::pin(client.receive_messages()?);
     /// while let Some(msg) = messages.next().await {
     ///     println!("{:?}", msg?);
     /// }
@@ -446,7 +447,7 @@ impl ClaudeSDKClient {
     /// # let mut client = ClaudeSDKClient::new(ClaudeAgentOptions::default());
     /// # client.connect(None).await?;
     /// # client.query("Hello").await?;
-    /// let mut messages = client.receive_response()?;
+    /// let mut messages = Box::pin(client.receive_response()?);
     /// while let Some(msg) = messages.next().await {
     ///     match msg? {
     ///         Message::Assistant(a) => println!("Assistant: {:?}", a),
@@ -730,7 +731,7 @@ impl ClaudeSDKClient {
     /// client.connect(Some("Hello".to_string())).await?;
     ///
     /// // Process messages
-    /// let mut messages = client.receive_messages()?;
+    /// let mut messages = Box::pin(client.receive_messages()?);
     /// while let Some(msg) = messages.next().await {
     ///     let _ = msg?;
     ///     // Session ID gets captured automatically

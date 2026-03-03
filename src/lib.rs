@@ -10,7 +10,8 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let mut messages = query("What is 2 + 2?", None).await?;
+//!     let stream = query("What is 2 + 2?", None).await?;
+//!     let mut messages = Box::pin(stream);
 //!
 //!     while let Some(msg) = messages.next().await {
 //!         match msg? {
@@ -78,7 +79,8 @@ use transport::{check_claude_version, find_claude_cli, subprocess::SubprocessTra
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-///     let mut messages = query("Hello, Claude!", None).await?;
+///     let stream = query("Hello, Claude!", None).await?;
+///     let mut messages = Box::pin(stream);
 ///
 ///     while let Some(msg) = messages.next().await {
 ///         println!("{:?}", msg?);
