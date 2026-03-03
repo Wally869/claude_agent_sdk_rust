@@ -106,10 +106,8 @@ async fn test_pretooluse_hook_blocks_execution() {
                                     bash_result_content = content.to_string();
                                     eprintln!("[MESSAGE] Tool result: {}", bash_result_content);
                                 }
-                            } else {
-                                if let Some(content) = &result.content {
-                                    eprintln!("[MESSAGE] Tool error: {}", content);
-                                }
+                            } else if let Some(content) = &result.content {
+                                eprintln!("[MESSAGE] Tool error: {}", content);
                             }
                         }
                     }
