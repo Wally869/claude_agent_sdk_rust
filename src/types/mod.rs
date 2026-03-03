@@ -1,15 +1,26 @@
 //! Type definitions for Claude Agent SDK.
 
+/// Agent definitions and setting source configuration.
 pub mod agents;
+/// Content blocks within assistant messages (text, thinking, tool use/result).
 pub mod content;
+/// Control protocol requests and responses between SDK and CLI.
 pub mod control;
+/// Hook events, inputs, and outputs for intercepting agent behavior.
 pub mod hooks;
+/// MCP (Model Context Protocol) server configurations.
 pub mod mcp;
+/// Message types streamed from the CLI (user, assistant, system, result).
 pub mod messages;
+/// Agent options, permission modes, and configuration builders.
 pub mod options;
+/// Permission results and tool permission context types.
 pub mod permissions;
+/// SDK plugin configuration.
 pub mod plugins;
+/// Sandbox settings for restricting bash command execution.
 pub mod sandbox;
+/// Usage tracking and quota monitoring (Max Plan).
 pub mod usage;
 
 // Re-export commonly used types

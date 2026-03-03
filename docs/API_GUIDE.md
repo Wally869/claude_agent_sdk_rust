@@ -836,10 +836,10 @@ export CLAUDE_AGENT_SDK_SKIP_VERSION_CHECK=1
 
 - [README.md](../README.md) - Installation and setup
 - [examples/](../examples/) - Complete working examples
-- [Rust API Documentation](https://docs.rs/claude-agent-sdk) - Full API reference
+- [Rust API Documentation](https://docs.rs/claude-agent-sdk) - Full API reference (once published)
 - [Claude Code Documentation](https://docs.claude.com/claude-code) - CLI documentation
 
 ## Support
 
-- GitHub Issues: https://github.com/anthropics/claude-agent-sdk-rust/issues
+- GitHub Issues: https://github.com/Wally869/claude-agent-sdk-rust/issues
 - Claude Code: https://claude.com/claude-code

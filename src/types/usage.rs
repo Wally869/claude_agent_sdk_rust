@@ -1,3 +1,5 @@
+//! Usage tracking and quota monitoring for Claude Code Max Plan users.
+
 use serde::{Deserialize, Serialize};
 
 /// Represents a usage limit period with utilization percentage and reset time
