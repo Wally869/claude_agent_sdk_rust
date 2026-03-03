@@ -179,8 +179,6 @@ impl Query {
         QueryHandle {
             pending_responses,
             request_counter,
-            hook_callbacks,
-            can_use_tool_callback,
             sdk_messages_rx,
             server_info,
             stdin,
@@ -416,12 +414,6 @@ pub struct QueryHandle {
 
     /// Counter for generating unique request IDs.
     request_counter: Arc<Mutex<u64>>,
-
-    /// Hook callbacks indexed by callback ID.
-    hook_callbacks: Arc<HashMap<String, Arc<HookCallbackFn>>>,
-
-    /// Permission callback (if set).
-    can_use_tool_callback: Arc<Option<Arc<CanUseToolFn>>>,
 
     /// Channel for SDK messages (non-control messages).
     sdk_messages_rx: Arc<Mutex<mpsc::Receiver<Value>>>,
