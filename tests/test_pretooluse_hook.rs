@@ -96,7 +96,8 @@ async fn test_pretooluse_hook_blocks_execution() {
             }
             Message::User(msg) => {
                 eprintln!("[MESSAGE] User message (tool result) received");
-                if let claude_agent_sdk_rust::MessageContent::Blocks(blocks) = &msg.message.content {
+                if let claude_agent_sdk_rust::MessageContent::Blocks(blocks) = &msg.message.content
+                {
                     for block in blocks {
                         if let claude_agent_sdk_rust::ContentBlock::ToolResult(result) = block {
                             let is_err = result.is_error.unwrap_or(false);
